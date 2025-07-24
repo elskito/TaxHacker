@@ -10,27 +10,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-interface DeleteFileModalProps {
+interface DeleteModalProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
-  fileName?: string
-  type?: "file" | "transaction"
+  title: string
+  description: string
 }
 
-export function DeleteFileModal({ isOpen, onClose, onConfirm, fileName, type = "file" }: DeleteFileModalProps) {
-  const isTransaction = type === "transaction"
-  
+export function DeleteModal({ isOpen, onClose, onConfirm, title, description }: DeleteModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isTransaction ? "Delete Transaction" : "Delete File"}</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {isTransaction 
-              ? "Are you sure? This will delete the transaction with all the files permanently"
-              : `Are you sure you want to delete ${fileName ? `"${fileName}"` : "this file"}? This action cannot be undone.`
-            }
+            {description}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

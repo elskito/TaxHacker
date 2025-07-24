@@ -11,7 +11,7 @@ import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
 import { FormInput, FormTextarea } from "@/components/forms/simple"
-import { DeleteFileModal } from "@/components/transactions/delete-file-modal"
+import { DeleteModal } from "@/components/transactions/delete-file-modal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Category, Currency, Field, File, Project } from "@/prisma/client"
@@ -362,12 +362,12 @@ export default function AnalyzeForm({
         </div>
       </form>
 
-      <DeleteFileModal
+      <DeleteModal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        fileName={file.originalName}
-        type="file"
+        title="Delete File"
+        description={`Are you sure you want to delete this file? This action cannot be undone.`}
       />
     </>
   )

@@ -9,7 +9,7 @@ import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
 import { FormInput, FormTextarea } from "@/components/forms/simple"
-import { DeleteFileModal } from "@/components/transactions/delete-file-modal"
+import { DeleteModal } from "@/components/transactions/delete-file-modal"
 import { Button } from "@/components/ui/button"
 import { TransactionData } from "@/models/transactions"
 import { Category, Currency, Field, Project, Transaction } from "@/prisma/client"
@@ -255,11 +255,12 @@ export default function TransactionEditForm({
         {saveState?.error && <FormError>{saveState.error}</FormError>}
       </div>
 
-      <DeleteFileModal
+      <DeleteModal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        type="transaction"
+        title="Delete Transaction"
+        description="Are you sure? This will delete the transaction with all the files permanently"
       />
     </form>
   )

@@ -2,7 +2,7 @@
 
 import { deleteTransactionFileAction, uploadTransactionFilesAction } from "@/app/(app)/transactions/actions"
 import { FilePreview } from "@/components/files/preview"
-import { DeleteFileModal } from "@/components/transactions/delete-file-modal"
+import { DeleteModal } from "@/components/transactions/delete-file-modal"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import config from "@/lib/config"
@@ -87,14 +87,15 @@ export default function TransactionFiles({ transaction, files }: { transaction: 
         </label>
       </Card>
 
-      <DeleteFileModal
+      <DeleteModal
         isOpen={deleteModalOpen}
         onClose={() => {
           setDeleteModalOpen(false)
           setFileToDelete(null)
         }}
         onConfirm={() => fileToDelete && handleDeleteFile(fileToDelete.id)}
-        fileName={fileToDelete?.originalName}
+        title="Delete File"
+        description={`Are you sure you want to delete ${fileToDelete?.originalName ? `"${fileToDelete.originalName}"` : "this file"}? This action cannot be undone.`}
       />
     </>
   )
