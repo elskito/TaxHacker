@@ -14,7 +14,7 @@ import { uploadStaticImage } from "@/lib/uploads"
 import { codeFromName, randomHexColor } from "@/lib/utils"
 import { createCategory, deleteCategory, updateCategory } from "@/models/categories"
 import { createCurrency, deleteCurrency, updateCurrency } from "@/models/currencies"
-import { createField, deleteField, updateField } from "@/models/fields"
+import { createField, deleteField, updateField, updateFieldsOrder, resetFieldsToDefaultOrder } from "@/models/fields"
 import { createProject, deleteProject, updateProject } from "@/models/projects"
 import { SettingsMap, updateSettings } from "@/models/settings"
 import { updateUser } from "@/models/users"
@@ -275,5 +275,27 @@ export async function deleteFieldAction(userId: string, code: string) {
     return { success: false, error: "Failed to delete field" + error }
   }
   revalidatePath("/settings/fields")
+  return { success: true }
+}
+
+export async function updateFieldsOrderAction(userId: string, fieldsOrder: { code: string; order: number }[]) {
+  try {
+    await updateFieldsOrder(userId, fieldsOrder)
+  } catch (error) {
+    return { success: false, error: "Failed to update field order: " + error }
+  }
+  revalidatePath("/settings/fields")
+  revalidatePath("/transactions")
+  return { success: true }
+}
+
+export async function resetFieldsOrderAction(userId: string) {
+  try {
+    await resetFieldsToDefaultOrder(userId)
+  } catch (error) {
+    return { success: false, error: "Failed to reset field order: " + error }
+  }
+  revalidatePath("/settings/fields")
+  revalidatePath("/transactions")
   return { success: true }
 }

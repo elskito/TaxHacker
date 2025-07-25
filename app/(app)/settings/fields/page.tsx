@@ -1,5 +1,5 @@
-import { addFieldAction, deleteFieldAction, editFieldAction } from "@/app/(app)/settings/actions"
-import { CrudTable } from "@/components/settings/crud"
+import { addFieldAction, deleteFieldAction, editFieldAction, updateFieldsOrderAction, resetFieldsOrderAction } from "@/app/(app)/settings/actions"
+import { DraggableCrudTable } from "@/components/settings/draggable-crud"
 import { getCurrentUser } from "@/lib/auth"
 import { getFields } from "@/models/fields"
 import { Prisma } from "@/prisma/client"
@@ -19,9 +19,9 @@ export default async function FieldsSettingsPage() {
       <p className="text-sm text-gray-500 mb-6 max-w-prose">
         You can add new fields to your transactions. Standard fields can&apos;t be removed but you can tweak their
         prompts or hide them. If you don&apos;t want a field to be analyzed by AI but filled in by hand, leave the
-        &quot;LLM prompt&quot; empty.
+        &quot;LLM prompt&quot; empty. Drag fields to reorder them.
       </p>
-      <CrudTable
+      <DraggableCrudTable
         items={fieldsWithActions}
         columns={[
           { key: "name", label: "Name", editable: true },
@@ -67,6 +67,18 @@ export default async function FieldsSettingsPage() {
         onEdit={async (code, data) => {
           "use server"
           return await editFieldAction(user.id, code, data as Prisma.FieldUpdateInput)
+        }}
+        onReorder={async (reorderedFields) => {
+          "use server"
+          const fieldsOrder = reorderedFields.map((field, index) => ({
+            code: field.code,
+            order: index,
+          }))
+          return await updateFieldsOrderAction(user.id, fieldsOrder)
+        }}
+        onResetOrder={async () => {
+          "use server"
+          return await resetFieldsOrderAction(user.id)
         }}
       />
     </div>
