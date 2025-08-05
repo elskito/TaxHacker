@@ -20,6 +20,7 @@ export type TransactionData = {
   categoryCode?: string | null
   projectCode?: string | null
   issuedAt?: Date | string | null
+  dueDate?: Date | string | null
   text?: string | null
   [key: string]: unknown
 }

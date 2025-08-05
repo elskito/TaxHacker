@@ -67,6 +67,7 @@ export default function AnalyzeForm({
       categoryCode: settings.default_category,
       projectCode: settings.default_project,
       issuedAt: "",
+      dueDate: "",
       note: "",
       text: "",
       items: [],
@@ -263,6 +264,14 @@ export default function AnalyzeForm({
             onChange={(e) => setFormData((prev) => ({ ...prev, issuedAt: e.target.value }))}
             hideIfEmpty={!fieldMap.issuedAt.isVisibleInAnalysis}
             required={fieldMap.issuedAt.isRequired}
+          />
+          
+          <FormInput
+            title="Due Date"
+            type="date"
+            name="dueDate"
+            value={formData.dueDate}
+            onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
           />
         </div>
 

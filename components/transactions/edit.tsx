@@ -51,6 +51,7 @@ export default function TransactionEditForm({
     categoryCode: transaction.categoryCode || settings.default_category,
     projectCode: transaction.projectCode || settings.default_project,
     issuedAt: transaction.issuedAt ? format(transaction.issuedAt, "yyyy-MM-dd") : "",
+    dueDate: transaction.dueDate ? format(transaction.dueDate, "yyyy-MM-dd") : "",
     note: transaction.note || "",
     items: transaction.items || [],
     ...extraFields.reduce(
@@ -152,6 +153,13 @@ export default function TransactionEditForm({
           name="issuedAt"
           defaultValue={formData.issuedAt}
           isRequired={fieldMap.issuedAt.isRequired}
+        />
+        <FormInput
+          title={fieldMap.dueDate?.name || "Due Date"}
+          type="date"
+          name="dueDate"
+          defaultValue={formData.dueDate}
+          isRequired={fieldMap.dueDate?.isRequired || false}
         />
         {formData.currencyCode !== settings.default_currency || formData.convertedTotal !== 0 ? (
           <>
