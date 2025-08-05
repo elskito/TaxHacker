@@ -8,6 +8,7 @@ export interface FieldsFormData {
   name: string
   type: string
   llm_prompt: string
+  options?: string[]
   isVisibleInList: boolean
   isVisibleInAnalysis: boolean
   isRequired: boolean
@@ -22,6 +23,7 @@ export const fieldsFieldConfig = {
       name: "",
       type: "string",
       llm_prompt: "",
+      options: [],
       isVisibleInList: false,
       isVisibleInAnalysis: false,
       isRequired: false,
@@ -36,6 +38,7 @@ export const fieldsFieldConfig = {
       name: "",
       type: "string",
       llm_prompt: "",
+      options: [],
       isVisibleInList: false,
       isVisibleInAnalysis: false,
       isRequired: false,

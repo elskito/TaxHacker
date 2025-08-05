@@ -40,7 +40,60 @@ export const fieldFormSchema = z.object({
   name: z.string().max(128),
   type: z.string().max(128).default("string"),
   llm_prompt: z.string().max(512).nullable().optional(),
+  options: z.array(z.string().max(100).transform(val => val.trim())).optional()
+    .refine(
+      (options) => {
+        if (!options) return true;
+        // Ensure no empty strings when provided
+        return options.every(opt => opt.length > 0);
+      },
+      {
+        message: "Options cannot be empty strings",
+      }
+    )
+    .refine(
+      (options) => {
+        if (!options) return true;
+        // Ensure no duplicate options (case-insensitive)
+        const lowercaseOptions = options.map(opt => opt.toLowerCase());
+        return new Set(lowercaseOptions).size === lowercaseOptions.length;
+      },
+      {
+        message: "Options must be unique",
+      }
+    )
+    .refine(
+      (options) => {
+        if (!options) return true;
+        // Validate each option against common injection patterns
+        const dangerousPatterns = [
+          /<script/i, 
+          /javascript:/i, 
+          /data:/i, 
+          /vbscript:/i,
+          /on\w+\s*=/i
+        ];
+        return !options.some(opt => 
+          dangerousPatterns.some(pattern => pattern.test(opt))
+        );
+      },
+      {
+        message: "Options contain potentially dangerous content",
+      }
+    ),
   isVisibleInList: z.boolean().optional(),
   isVisibleInAnalysis: z.boolean().optional(),
   isRequired: z.boolean().optional(),
-})
+}).refine(
+  (data) => {
+    // For select type, options should be provided if required
+    if (data.type === "select" && data.isRequired) {
+      return data.options && data.options.length > 0;
+    }
+    return true;
+  },
+  {
+    message: "Required select fields must have at least one option",
+    path: ["options"],
+  }
+)

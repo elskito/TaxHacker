@@ -8,7 +8,7 @@ import { FormSelectCategory } from "@/components/forms/select-category"
 import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
-import { FormInput, FormTextarea } from "@/components/forms/simple"
+import { FormInput, FormTextarea, FormSelect } from "@/components/forms/simple"
 import { DeleteModal } from "@/components/transactions/delete-file-modal"
 import { Button } from "@/components/ui/button"
 import { TransactionData } from "@/models/transactions"
@@ -216,17 +216,42 @@ export default function TransactionEditForm({
       />
 
       <div className="flex flex-wrap gap-4">
-        {extraFields.map((field) => (
-          <FormInput
-            key={field.code}
-            type="text"
-            title={field.name}
-            name={field.code}
-            defaultValue={(formData[field.code as keyof typeof formData] as string) || ""}
-            isRequired={field.isRequired}
-            className={field.type === "number" ? "max-w-36" : "max-w-full"}
-          />
-        ))}
+        {extraFields.map((field) => {
+          if (field.type === "select" && field.options && Array.isArray(field.options)) {
+            const selectItems = (field.options as string[]).map((option: string) => ({
+              code: option,
+              name: option
+            }))
+            
+            return (
+              <FormSelect
+                key={field.code}
+                title={field.name}
+                name={field.code}
+                items={selectItems}
+                value={(formData[field.code as keyof typeof formData] as string) || ""}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, [field.code]: value })
+                }}
+                isRequired={field.isRequired}
+                placeholder={`Select ${field.name.toLowerCase()}`}
+                emptyValue="Not Defined"
+              />
+            )
+          }
+          
+          return (
+            <FormInput
+              key={field.code}
+              type={field.type === "number" ? "number" : "text"}
+              title={field.name}
+              name={field.code}
+              defaultValue={(formData[field.code as keyof typeof formData] as string) || ""}
+              isRequired={field.isRequired}
+              className={field.type === "number" ? "max-w-36" : "max-w-full"}
+            />
+          )
+        })}
       </div>
 
       {formData.items && Array.isArray(formData.items) && formData.items.length > 0 && (

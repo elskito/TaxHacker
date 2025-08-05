@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { fieldsFieldConfig, FieldsFormData } from "./fieldConfigs"
 import { FieldWithActions } from "./types"
+import { SelectOptionsManager } from "./SelectOptionsManager"
 
 type FieldWithEditableActions = FieldWithActions & EditableItem
 
@@ -31,7 +32,7 @@ export function FieldsTable({ fields, onAdd, onEdit, onDelete }: FieldsTableProp
     handleDelete,
   } = useCrudForm<FieldWithEditableActions>({
     defaultFormData: fieldsFieldConfig.defaultFormData(),
-    onAdd: onAdd as any,
+    onAdd: onAdd as (data: Partial<FieldWithEditableActions>) => Promise<{ success: boolean; error?: string }>,
     onEdit,
     onDelete,
     successMessages: {
@@ -49,7 +50,7 @@ export function FieldsTable({ fields, onAdd, onEdit, onDelete }: FieldsTableProp
   const columns: TableColumn<FieldWithEditableActions>[] = fieldsFieldConfig.getColumns<FieldWithEditableActions>()
   const formFields = fieldsFieldConfig.getFormFields(
     formData as FieldsFormData,
-    updateFormData as (updates: Partial<FieldsFormData>) => void
+    updateFormData
   )
 
   return (
@@ -74,7 +75,7 @@ export function FieldsTable({ fields, onAdd, onEdit, onDelete }: FieldsTableProp
         onSubmit={handleAdd}
         submitText="Add Field"
       >
-        {formFields.map((field: any) => (
+        {formFields.map((field) => (
           <FormField
             key={field.id}
             id={field.id}
@@ -104,10 +105,21 @@ export function FieldsTable({ fields, onAdd, onEdit, onDelete }: FieldsTableProp
                 <SelectItem value="string">String</SelectItem>
                 <SelectItem value="number">Number</SelectItem>
                 <SelectItem value="boolean">Boolean</SelectItem>
+                <SelectItem value="select">Select</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
+
+        {/* Select Options - only show when type is "select" */}
+        {formData.type === "select" && (
+          <SelectOptionsManager
+            options={Array.isArray(formData.options) ? formData.options.filter((opt): opt is string => typeof opt === 'string') : []}
+            onChange={(options) => updateFormData({ options })}
+            label="Select Options"
+            isRequired={formData.isRequired || false}
+          />
+        )}
 
         {/* Checkboxes */}
         <div className="grid grid-cols-4 items-center gap-4">
@@ -156,7 +168,7 @@ export function FieldsTable({ fields, onAdd, onEdit, onDelete }: FieldsTableProp
         onSubmit={handleEdit}
         submitText="Update Field"
       >
-        {formFields.map((field: any) => (
+        {formFields.map((field) => (
           <FormField
             key={`edit-${field.id}`}
             id={`edit-${field.id}`}
@@ -186,10 +198,21 @@ export function FieldsTable({ fields, onAdd, onEdit, onDelete }: FieldsTableProp
                 <SelectItem value="string">String</SelectItem>
                 <SelectItem value="number">Number</SelectItem>
                 <SelectItem value="boolean">Boolean</SelectItem>
+                <SelectItem value="select">Select</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
+
+        {/* Select Options - only show when type is "select" */}
+        {formData.type === "select" && (
+          <SelectOptionsManager
+            options={Array.isArray(formData.options) ? formData.options.filter((opt): opt is string => typeof opt === 'string') : []}
+            onChange={(options) => updateFormData({ options })}
+            label="Select Options"
+            isRequired={formData.isRequired || false}
+          />
+        )}
 
         {/* Checkboxes */}
         <div className="grid grid-cols-4 items-center gap-4">
