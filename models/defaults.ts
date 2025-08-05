@@ -325,6 +325,16 @@ export const DEFAULT_FIELDS = [
     isExtra: false,
   },
   {
+    code: "dueDate",
+    name: "Due Date",
+    type: "string",
+    llm_prompt: "due date, delivery date or date of service (YYYY-MM-DD format) if not provided it will be the same as issued at date",
+    isVisibleInList: true,
+    isVisibleInAnalysis: true,
+    isRequired: false,
+    isExtra: false,
+  },
+  {
     code: "projectCode",
     name: "Project",
     type: "string",

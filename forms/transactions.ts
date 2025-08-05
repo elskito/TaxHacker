@@ -45,6 +45,17 @@ export const transactionFormSchema = z
           .transform((val) => new Date(val)),
       ])
       .optional(),
+    dueDate: z
+      .union([
+        z.date(),
+        z
+          .string()
+          .refine((val) => !isNaN(Date.parse(val)), {
+            message: "Invalid date format",
+          })
+          .transform((val) => new Date(val)),
+      ])
+      .optional(),
     text: z.string().optional(),
     note: z.string().optional(),
     items: z
@@ -60,3 +71,12 @@ export const transactionFormSchema = z
       }),
   })
   .catchall(z.string())
+  .refine((data) => {
+    if (data.dueDate && data.issuedAt) {
+      return new Date(data.dueDate) >= new Date(data.issuedAt);
+    }
+    return true;
+  }, {
+    message: "Due date must be on or after the issued date",
+    path: ["dueDate"]
+  })

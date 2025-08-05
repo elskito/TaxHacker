@@ -188,6 +188,7 @@ model Transaction {
   project               Project?  @relation(fields: [projectCode, userId], references: [code, userId])
   projectCode           String?   @map("project_code")
   issuedAt              DateTime? @map("issued_at")
+  dueDate               DateTime? @map("due_date")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   text                  String?
