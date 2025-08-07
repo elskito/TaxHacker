@@ -4,7 +4,9 @@ import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -257,5 +259,76 @@ export const FormAvatar = ({
         </div>
       </div>
     </label>
+  )
+}
+
+type FormCheckboxProps = {
+  title?: string
+  name?: string
+  checked?: boolean
+  defaultChecked?: boolean
+  onChange?: (checked: boolean) => void
+  hideIfEmpty?: boolean
+  isRequired?: boolean
+  className?: string
+}
+
+export function FormCheckbox({ 
+  title, 
+  name,
+  checked,
+  defaultChecked = false,
+  onChange,
+  hideIfEmpty = false, 
+  isRequired = false,
+  className
+}: FormCheckboxProps) {
+  const [internalChecked, setInternalChecked] = useState(defaultChecked)
+  const isControlled = checked !== undefined
+  const checkedValue = isControlled ? checked : internalChecked
+  
+  const isEmpty = !checkedValue && !defaultChecked
+
+  if (hideIfEmpty && isEmpty) {
+    return null
+  }
+
+  const handleCheckedChange = (checked: boolean | "indeterminate") => {
+    const booleanValue = checked === true
+    if (!isControlled) {
+      setInternalChecked(booleanValue)
+    }
+    onChange?.(booleanValue)
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {title && (
+        <Label 
+          htmlFor={name} 
+          className={`text-sm font-medium ${isRequired ? "after:content-['*'] after:text-red-500 after:ml-1" : ""}`}
+        >
+          {title}
+        </Label>
+      )}
+      <div className="flex justify-center items-center h-9">
+        <Checkbox
+          id={name}
+          name={name}
+          checked={checkedValue}
+          onCheckedChange={handleCheckedChange}
+          className={cn(
+            "hover:border-primary/80 transition-colors",
+            className
+          )}
+        />
+        {/* Hidden input to ensure form submission includes the value */}
+        <input
+          type="hidden"
+          name={name}
+          value={checkedValue ? "true" : "false"}
+        />
+      </div>
+    </div>
   )
 }
