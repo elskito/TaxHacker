@@ -7,7 +7,7 @@ import { SettingsMap } from "@/models/settings"
 import { Currency, User } from "@/prisma/client"
 import { FileDown, Loader2, Save, TextSelect, X } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { startTransition, useMemo, useReducer, useState } from "react"
+import { startTransition, useCallback, useMemo, useReducer, useState } from "react"
 import {
   addNewTemplateAction,
   deleteTemplateAction,
@@ -99,9 +99,28 @@ export function InvoiceGenerator({
   currencies: Currency[]
   appData: InvoiceAppData | null
 }) {
+  // Helper function to ensure templates have all required fields
+  const ensureTemplateFields = useCallback((template: InvoiceTemplate): InvoiceTemplate => {
+    const defaultTemplate = defaultTemplates(user, settings)[0].formData
+    return {
+      ...template,
+      formData: {
+        ...defaultTemplate,
+        ...template.formData,
+        // Ensure critical label fields are present
+        dateOfSaleLabel: template.formData.dateOfSaleLabel || defaultTemplate.dateOfSaleLabel,
+        issueDateLabel: template.formData.issueDateLabel || defaultTemplate.issueDateLabel,
+        dueDateLabel: template.formData.dueDateLabel || defaultTemplate.dueDateLabel,
+      }
+    }
+  }, [user, settings])
+
   const templates: InvoiceTemplate[] = useMemo(
-    () => [...defaultTemplates(user, settings), ...(appData?.templates || [])],
-    [appData]
+    () => [
+      ...defaultTemplates(user, settings), 
+      ...(appData?.templates || []).map(ensureTemplateFields)
+    ],
+    [appData, user, settings, ensureTemplateFields]
   )
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>(templates[0].name)

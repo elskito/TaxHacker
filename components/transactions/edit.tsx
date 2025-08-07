@@ -4,6 +4,8 @@ import { deleteTransactionAction, saveTransactionAction } from "@/app/(app)/tran
 import { ItemsDetectTool } from "@/components/agents/items-detect"
 import ToolWindow from "@/components/agents/tool-window"
 import { FormError } from "@/components/forms/error"
+import TransactionBasicInfo from "@/components/transactions/transaction-basic-info"
+import TransactionDates from "@/components/transactions/transaction-dates"
 import { FormSelectCategory } from "@/components/forms/select-category"
 import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { FormSelectProject } from "@/components/forms/select-project"
@@ -52,6 +54,7 @@ export default function TransactionEditForm({
     projectCode: transaction.projectCode || settings.default_project,
     issuedAt: transaction.issuedAt ? format(transaction.issuedAt, "yyyy-MM-dd") : "",
     dueDate: transaction.dueDate ? format(transaction.dueDate, "yyyy-MM-dd") : "",
+    dateOfSale: transaction.dateOfSale ? format(transaction.dateOfSale, "yyyy-MM-dd") : "",
     note: transaction.note || "",
     items: transaction.items || [],
     ...extraFields.reduce(
@@ -100,26 +103,10 @@ export default function TransactionEditForm({
     <form action={saveAction} className="space-y-4">
       <input type="hidden" name="transactionId" value={transaction.id} />
 
-      <FormInput
-        title={fieldMap.name.name}
-        name="name"
-        defaultValue={formData.name}
-        isRequired={fieldMap.name.isRequired}
-      />
-
-      <FormInput
-        title={fieldMap.merchant.name}
-        name="merchant"
-        defaultValue={formData.merchant}
-        isRequired={fieldMap.merchant.isRequired}
-      />
-
-      <FormInput
-        title={fieldMap.description.name}
-        name="description"
-        defaultValue={formData.description}
-        isRequired={fieldMap.description.isRequired}
-      />
+      <div className="flex flex-col lg:flex-row gap-4 mb-4">
+        <TransactionBasicInfo transaction={transaction} fields={fields} />
+        <TransactionDates transaction={transaction} fields={fields} />
+      </div>
 
       <div className="flex flex-row gap-4">
         <FormInput
@@ -151,24 +138,9 @@ export default function TransactionEditForm({
         />
       </div>
 
-      <div className="flex flex-row flex-grow gap-4">
-        <FormInput
-          title={fieldMap.issuedAt.name}
-          type="date"
-          name="issuedAt"
-          defaultValue={formData.issuedAt}
-          isRequired={fieldMap.issuedAt.isRequired}
-        />
-        <FormInput
-          title={fieldMap.dueDate?.name || "Due Date"}
-          type="date"
-          name="dueDate"
-          defaultValue={formData.dueDate}
-          isRequired={fieldMap.dueDate?.isRequired || false}
-        />
-        {formData.currencyCode !== settings.default_currency || formData.convertedTotal !== 0 ? (
-          <>
-            {formData.convertedTotal !== null && (
+      {formData.currencyCode !== settings.default_currency || formData.convertedTotal !== 0 ? (
+        <div className="flex flex-row flex-grow gap-4">
+          {formData.convertedTotal !== null && (
               <FormInput
                 title={`Total converted to ${formData.convertedCurrencyCode || "UNKNOWN CURRENCY"}`}
                 type="number"
@@ -188,11 +160,8 @@ export default function TransactionEditForm({
                 isRequired={fieldMap.convertedCurrencyCode.isRequired}
               />
             )}
-          </>
-        ) : (
-          <></>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-row gap-4">
         <FormSelectCategory

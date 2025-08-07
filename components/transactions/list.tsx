@@ -54,6 +54,14 @@ export const standardFieldRenderers: Record<string, FieldRenderer> = {
     formatValue: (transaction: Transaction) =>
       transaction.dueDate ? formatDate(transaction.dueDate, "yyyy-MM-dd") : "",
   },
+  dateOfSale: {
+    name: "Date of Sale",
+    code: "dateOfSale",
+    classes: "min-w-[100px]",
+    sortable: true,
+    formatValue: (transaction: Transaction) =>
+      transaction.dateOfSale ? formatDate(transaction.dateOfSale, "yyyy-MM-dd") : "",
+  },
   projectCode: {
     name: "Project",
     code: "projectCode",

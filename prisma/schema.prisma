@@ -189,6 +189,7 @@ model Transaction {
   projectCode           String?   @map("project_code")
   issuedAt              DateTime? @map("issued_at")
   dueDate               DateTime? @map("due_date")
+  dateOfSale            DateTime? @map("date_of_sale")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   text                  String?

@@ -40,7 +40,8 @@ export const fieldFormSchema = z.object({
   name: z.string().max(128),
   type: z.string().max(128).default("string"),
   llm_prompt: z.string().max(512).nullable().optional(),
-  options: z.array(z.string().max(100).transform(val => val.trim())).optional()
+  options: z.array(z.string().max(100).transform(val => val.trim())).nullable().optional()
+    .transform((val) => val === null ? undefined : val)
     .refine(
       (options) => {
         if (!options) return true;

@@ -69,6 +69,7 @@ export default function AnalyzeForm({
       projectCode: settings.default_project,
       issuedAt: "",
       dueDate: "",
+      dateOfSale: "",
       note: "",
       text: "",
       items: [],
@@ -305,6 +306,14 @@ export default function AnalyzeForm({
             name="dueDate"
             value={formData.dueDate}
             onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
+          />
+          
+          <FormInput
+            title="Date of Sale"
+            type="date"
+            name="dateOfSale"
+            value={formData.dateOfSale}
+            onChange={(e) => setFormData((prev) => ({ ...prev, dateOfSale: e.target.value }))}
           />
         </div>
 
