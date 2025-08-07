@@ -11,6 +11,7 @@ import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
 import { FormInput, FormTextarea } from "@/components/forms/simple"
+import { FormSelectField } from "@/components/forms/select-field"
 import { DeleteModal } from "@/components/transactions/delete-file-modal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -310,18 +311,38 @@ export default function AnalyzeForm({
           required={fieldMap.note.isRequired}
         />
 
-        {extraFields.map((field) => (
-          <FormInput
-            key={field.code}
-            type="text"
-            title={field.name}
-            name={field.code}
-            value={formData[field.code as keyof typeof formData]}
-            onChange={(e) => setFormData((prev) => ({ ...prev, [field.code]: e.target.value }))}
-            hideIfEmpty={!field.isVisibleInAnalysis}
-            required={field.isRequired}
-          />
-        ))}
+        {extraFields.map((field) => {
+          if (field.type === "select" && field.options && Array.isArray(field.options)) {
+            const options = field.options.filter((opt): opt is string => typeof opt === 'string')
+            return (
+              <FormSelectField
+                key={field.code}
+                title={field.name}
+                name={field.code}
+                options={options}
+                value={formData[field.code as keyof typeof formData] as string}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, [field.code]: value }))}
+                hideIfEmpty={!field.isVisibleInAnalysis}
+                required={field.isRequired}
+                placeholder={`Select ${field.name}`}
+                emptyValue="Not Defined"
+              />
+            )
+          }
+          
+          return (
+            <FormInput
+              key={field.code}
+              type={field.type === "number" ? "number" : "text"}
+              title={field.name}
+              name={field.code}
+              value={formData[field.code as keyof typeof formData]}
+              onChange={(e) => setFormData((prev) => ({ ...prev, [field.code]: e.target.value }))}
+              hideIfEmpty={!field.isVisibleInAnalysis}
+              required={field.isRequired}
+            />
+          )
+        })}
 
         {formData.items && formData.items.length > 0 && (
           <ToolWindow title="Detected items">
