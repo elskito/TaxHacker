@@ -10,7 +10,7 @@ import { FormSelectCategory } from "@/components/forms/select-category"
 import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
-import { FormInput, FormTextarea } from "@/components/forms/simple"
+import { FormInput, FormTextarea, FormCheckbox } from "@/components/forms/simple"
 import { FormSelectField } from "@/components/forms/select-field"
 import { DeleteModal } from "@/components/transactions/delete-file-modal"
 import { Badge } from "@/components/ui/badge"
@@ -77,18 +77,36 @@ export default function AnalyzeForm({
     // Add extra fields
     const extraFieldsState = extraFields.reduce(
       (acc, field) => {
-        acc[field.code] = ""
+        if (field.type === "boolean") {
+          acc[field.code] = false
+        } else {
+          acc[field.code] = ""
+        }
         return acc
       },
-      {} as Record<string, string>
+      {} as Record<string, any>
     )
 
     // Load cached results if they exist
     const cachedResults = file.cachedParseResult
       ? Object.fromEntries(
-          Object.entries(file.cachedParseResult as Record<string, string>).filter(
-            ([_, value]) => value !== null && value !== undefined && value !== ""
-          )
+          Object.entries(file.cachedParseResult as Record<string, any>).filter(
+            ([key, value]) => {
+              // Don't filter out boolean false values
+              const field = extraFields.find(f => f.code === key)
+              if (field?.type === "boolean") {
+                return value !== null && value !== undefined
+              }
+              return value !== null && value !== undefined && value !== ""
+            }
+          ).map(([key, value]) => {
+            // Convert string boolean values to actual booleans
+            const field = extraFields.find(f => f.code === key)
+            if (field?.type === "boolean") {
+              return [key, typeof value === 'boolean' ? value : String(value) === "true"]
+            }
+            return [key, value]
+          })
         )
       : {}
 
@@ -133,8 +151,22 @@ export default function AnalyzeForm({
       } else {
         const nonEmptyFields = Object.fromEntries(
           Object.entries(results.data?.output || {}).filter(
-            ([_, value]) => value !== null && value !== undefined && value !== ""
-          )
+            ([key, value]) => {
+              // Don't filter out boolean false values
+              const field = extraFields.find(f => f.code === key) || fields.find(f => f.code === key)
+              if (field?.type === "boolean") {
+                return value !== null && value !== undefined
+              }
+              return value !== null && value !== undefined && value !== ""
+            }
+          ).map(([key, value]) => {
+            // Convert string boolean values to actual booleans
+            const field = extraFields.find(f => f.code === key) || fields.find(f => f.code === key)
+            if (field?.type === "boolean") {
+              return [key, typeof value === 'boolean' ? value : String(value) === "true"]
+            }
+            return [key, value]
+          })
         )
         setFormData({ ...formData, ...nonEmptyFields })
       }
@@ -326,6 +358,20 @@ export default function AnalyzeForm({
                 required={field.isRequired}
                 placeholder={`Select ${field.name}`}
                 emptyValue="Not Defined"
+              />
+            )
+          }
+          
+          if (field.type === "boolean") {
+            return (
+              <FormCheckbox
+                key={field.code}
+                title={field.name}
+                name={field.code}
+                checked={Boolean(formData[field.code as keyof typeof formData])}
+                onChange={(checked) => setFormData((prev) => ({ ...prev, [field.code]: checked }))}
+                hideIfEmpty={!field.isVisibleInAnalysis}
+                isRequired={field.isRequired}
               />
             )
           }

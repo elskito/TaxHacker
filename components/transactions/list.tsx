@@ -8,7 +8,7 @@ import { calcTotalPerCurrency, isTransactionIncomplete } from "@/lib/stats"
 import { cn, formatCurrency } from "@/lib/utils"
 import { Category, Field, Project, Transaction } from "@/prisma/client"
 import { formatDate } from "date-fns"
-import { ArrowDownIcon, ArrowUpIcon, File } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, File, Check, X } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
@@ -241,11 +241,47 @@ export function TransactionList({ transactions, fields = [] }: { transactions: T
 
   const renderFieldInTable = (transaction: Transaction, field: FieldWithRenderer): string | React.ReactNode => {
     if (field.isExtra) {
-      return transaction.extra?.[field.code as keyof typeof transaction.extra] ?? ""
+      const value = transaction.extra?.[field.code as keyof typeof transaction.extra]
+      // Handle boolean fields with icons
+      if (field.type === "boolean") {
+        if (value === true || value === "true") {
+          return (
+            <div className="flex justify-center">
+              <Check className="h-4 w-4 text-green-600" />
+            </div>
+          )
+        } else {
+          // For boolean fields, treat undefined/null/false as false (show X)
+          return (
+            <div className="flex justify-center">
+              <X className="h-4 w-4 text-red-600" />
+            </div>
+          )
+        }
+      }
+      return value ?? ""
     } else if (field.renderer.formatValue) {
       return field.renderer.formatValue(transaction)
     } else {
-      return String(transaction[field.code as keyof Transaction])
+      const value = transaction[field.code as keyof Transaction]
+      // Handle boolean fields with icons for standard fields
+      if (field.type === "boolean") {
+        if (value === true || value === "true") {
+          return (
+            <div className="flex justify-center">
+              <Check className="h-4 w-4 text-green-600" />
+            </div>
+          )
+        } else {
+          // For boolean fields, treat undefined/null/false as false (show X)
+          return (
+            <div className="flex justify-center">
+              <X className="h-4 w-4 text-red-600" />
+            </div>
+          )
+        }
+      }
+      return String(value)
     }
   }
 

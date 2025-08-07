@@ -8,7 +8,7 @@ import { FormSelectCategory } from "@/components/forms/select-category"
 import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
-import { FormInput, FormTextarea, FormSelect } from "@/components/forms/simple"
+import { FormInput, FormTextarea, FormSelect, FormCheckbox } from "@/components/forms/simple"
 import { DeleteModal } from "@/components/transactions/delete-file-modal"
 import { Button } from "@/components/ui/button"
 import { TransactionData } from "@/models/transactions"
@@ -56,7 +56,12 @@ export default function TransactionEditForm({
     items: transaction.items || [],
     ...extraFields.reduce(
       (acc, field) => {
-        acc[field.code] = transaction.extra?.[field.code as keyof typeof transaction.extra] || ""
+        const value = transaction.extra?.[field.code as keyof typeof transaction.extra]
+        if (field.type === "boolean") {
+          acc[field.code] = value === "true" || value === true
+        } else {
+          acc[field.code] = value || ""
+        }
         return acc
       },
       {} as Record<string, any>
@@ -236,6 +241,21 @@ export default function TransactionEditForm({
                 isRequired={field.isRequired}
                 placeholder={`Select ${field.name.toLowerCase()}`}
                 emptyValue="Not Defined"
+              />
+            )
+          }
+          
+          if (field.type === "boolean") {
+            return (
+              <FormCheckbox
+                key={field.code}
+                title={field.name}
+                name={field.code}
+                defaultChecked={formData[field.code as keyof typeof formData] as boolean}
+                onChange={(checked) => {
+                  setFormData({ ...formData, [field.code]: checked })
+                }}
+                isRequired={field.isRequired}
               />
             )
           }
