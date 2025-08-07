@@ -29,7 +29,6 @@ export function FormField({
   disabled = false,
   options = [],
   validation,
-  showCharCount = false,
   maxLength,
   transform,
   className,
@@ -132,16 +131,9 @@ export function FormField({
         {label}
       </Label>
       {renderField()}
-      <div className="flex justify-between">
-        {error && (
-          <p className="text-sm text-destructive">{error}</p>
-        )}
-        {showCharCount && maxLength && (
-          <p className="text-xs text-muted-foreground ml-auto">
-            {(value || "").length}/{maxLength}
-          </p>
-        )}
-      </div>
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
     </div>
   )
 }

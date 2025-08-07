@@ -32,6 +32,7 @@ export interface InvoiceFormData {
   invoiceNumber: string
   date: string
   dueDate: string
+  dateOfSale: string
   currency: string
   companyDetails: string
   companyDetailsLabel: string
@@ -45,6 +46,7 @@ export interface InvoiceFormData {
   bankDetails: string
   issueDateLabel: string
   dueDateLabel: string
+  dateOfSaleLabel: string
   itemLabel: string
   quantityLabel: string
   unitPriceLabel: string
@@ -59,6 +61,7 @@ export interface InvoicePDFData {
   invoiceNumber: string
   date: string
   dueDate: string
+  dateOfSale: string
   currency: string
   currencyRate: number | null
   defaultCurrency?: string
@@ -74,6 +77,7 @@ export interface InvoicePDFData {
   bankDetails: string
   issueDateLabel: string
   dueDateLabel: string
+  dateOfSaleLabel: string
   itemLabel: string
   quantityLabel: string
   unitPriceLabel: string
@@ -410,6 +414,21 @@ export function InvoicePage({ invoiceData, dispatch, currencies }: InvoicePagePr
               type="date"
               value={invoiceData.dueDate}
               onChange={(e) => dispatch({ type: "UPDATE_FIELD", field: "dueDate", value: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1 w-full">
+            <ShadyFormInput
+              type="text"
+              value={invoiceData.dateOfSaleLabel}
+              onChange={(e) => dispatch({ type: "UPDATE_FIELD", field: "dateOfSaleLabel", value: e.target.value })}
+              className="text-xs sm:text-sm font-medium"
+            />
+            <FormInput
+              type="date"
+              value={invoiceData.dateOfSale}
+              onChange={(e) => dispatch({ type: "UPDATE_FIELD", field: "dateOfSale", value: e.target.value })}
               required
             />
           </div>

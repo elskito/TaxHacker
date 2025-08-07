@@ -199,6 +199,7 @@ export const MODEL_BACKUP: BackupSetting[] = [
         categoryCode: row.categoryCode,
         projectCode: row.projectCode,
         issuedAt: row.issuedAt,
+        dateOfSale: row.dateOfSale,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
         text: row.text,
@@ -219,6 +220,7 @@ export const MODEL_BACKUP: BackupSetting[] = [
         files: json.files,
         extra: json.extra,
         issuedAt: json.issuedAt,
+        dateOfSale: json.dateOfSale,
         user: {
           connect: {
             id: userId,

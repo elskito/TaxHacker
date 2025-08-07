@@ -98,6 +98,7 @@ export async function saveInvoiceAsTransactionAction(
       currencyCode: formData.currency,
       issuedAt: new Date(formData.date),
       dueDate: new Date(formData.dueDate),
+      dateOfSale: new Date(formData.dateOfSale),
       categoryCode: "invoice",
       projectCode: "personal",
       type: "income",

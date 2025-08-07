@@ -149,16 +149,18 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   dateGroup: {
-    flexDirection: "row",
-    gap: 20,
+    flexDirection: "column",
+    gap: 8,
   },
   dateItem: {
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 20,
+    gap: 8,
   },
   dateLabel: {
     fontSize: 12,
     fontWeight: "bold",
-    marginBottom: 8,
     color: "#000000",
   },
   dateValue: {
@@ -335,6 +337,10 @@ export function InvoicePDF({ data }: { data: InvoicePDFData }): ReactElement {
             <View style={styles.dateItem}>
               <Text style={styles.dateLabel}>{data.issueDateLabel}</Text>
               <Text style={styles.dateValue}>{formatDate(data.date, "yyyy-MM-dd")}</Text>
+            </View>
+            <View style={styles.dateItem}>
+              <Text style={styles.dateLabel}>{data.dateOfSaleLabel}</Text>
+              <Text style={styles.dateValue}>{formatDate(data.dateOfSale, "yyyy-MM-dd")}</Text>
             </View>
             <View style={styles.dateItem}>
               <Text style={styles.dateLabel}>{data.dueDateLabel}</Text>

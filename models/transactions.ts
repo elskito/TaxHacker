@@ -21,6 +21,7 @@ export type TransactionData = {
   projectCode?: string | null
   issuedAt?: Date | string | null
   dueDate?: Date | string | null
+  dateOfSale?: Date | string | null
   text?: string | null
   [key: string]: unknown
 }

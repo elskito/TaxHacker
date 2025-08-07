@@ -198,6 +198,8 @@ export async function splitFileIntoItemsAction(
           projectCode: item.projectCode,
           type: item.type,
           issuedAt: item.issuedAt,
+          dueDate: item.dueDate,
+          dateOfSale: item.dateOfSale,
           note: item.note,
           text: item.text,
         },
