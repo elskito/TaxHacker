@@ -56,6 +56,17 @@ export const transactionFormSchema = z
           .transform((val) => new Date(val)),
       ])
       .optional(),
+    dateOfSale: z
+      .union([
+        z.date(),
+        z
+          .string()
+          .refine((val) => !isNaN(Date.parse(val)), {
+            message: "Invalid date format",
+          })
+          .transform((val) => new Date(val)),
+      ])
+      .optional(),
     text: z.string().optional(),
     note: z.string().optional(),
     items: z
