@@ -98,6 +98,9 @@ export const getTransactions = cache(
         include: {
           category: true,
           project: true,
+          payments: {
+            orderBy: { paidAt: "asc" },
+          },
         },
         orderBy,
         take: pagination?.limit,
@@ -110,6 +113,9 @@ export const getTransactions = cache(
         include: {
           category: true,
           project: true,
+          payments: {
+            orderBy: { paidAt: "asc" },
+          },
         },
         orderBy,
       })
@@ -124,6 +130,9 @@ export const getTransactionById = cache(async (id: string, userId: string): Prom
     include: {
       category: true,
       project: true,
+      payments: {
+        orderBy: { paidAt: "asc" },
+      },
     },
   })
 })

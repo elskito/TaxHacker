@@ -171,6 +171,41 @@ export const standardFieldRenderers: Record<string, FieldRenderer> = {
     classes: "text-right",
     sortable: true,
   },
+  paymentStatus: {
+    name: "Payment Status",
+    code: "paymentStatus",
+    classes: "min-w-[120px] text-center",
+    sortable: false,
+    formatValue: (transaction: Transaction & { payments?: any[] }) => {
+      const totalPaid = transaction.payments?.reduce((sum: number, payment: any) => sum + payment.amount, 0) || 0
+      const total = transaction.total || 0
+      const isPaid = totalPaid >= total
+      const remainingAmount = Math.max(0, total - totalPaid)
+      
+      if (total === 0) {
+        return <div className="flex justify-center"><Badge variant="secondary">No Amount</Badge></div>
+      }
+      
+      if (isPaid) {
+        return <div className="flex justify-center"><Badge className="bg-green-100 text-green-800">Paid</Badge></div>
+      }
+      
+      if (totalPaid > 0) {
+        return (
+          <div className="flex flex-col items-center">
+            <Badge variant="outline" className="text-orange-600 border-orange-300">
+              Partial
+            </Badge>
+            <span className="text-xs text-gray-500 mt-1">
+              {formatCurrency(remainingAmount, transaction.currencyCode || 'USD')} remaining
+            </span>
+          </div>
+        )
+      }
+      
+      return <div className="flex justify-center"><Badge variant="outline" className="text-red-600 border-red-300">Unpaid</Badge></div>
+    },
+  },
 }
 
 const getFieldRenderer = (field: Field): FieldRenderer => {
