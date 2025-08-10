@@ -85,7 +85,6 @@ export function NamedEntityTable<T extends NamedEntityWithEditableActions>({
             onChange={field.onChange}
             type={field.type}
             placeholder={field.placeholder}
-            showCharCount={field.showCharCount}
           />
         ))}
       </FormDialog>
@@ -108,7 +107,6 @@ export function NamedEntityTable<T extends NamedEntityWithEditableActions>({
             onChange={field.onChange}
             type={field.type}
             placeholder={field.placeholder}
-            showCharCount={field.showCharCount}
           />
         ))}
       </FormDialog>

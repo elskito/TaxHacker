@@ -75,17 +75,10 @@ export const fieldsFieldConfig = {
             return <span className="text-muted-foreground">Manual entry</span>
           }
           return (
-            <div className="max-w-[300px]" title={prompt}>
-              {prompt.length > 40 ? (
-                <div className="space-y-1">
-                  <div className="truncate">{prompt}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {prompt.length} characters
-                  </div>
-                </div>
-              ) : (
-                <span className="text-sm">{prompt}</span>
-              )}
+            <div className="w-96" title={prompt}>
+              <div className="text-sm whitespace-normal break-words">
+                {prompt}
+              </div>
             </div>
           )
         },
@@ -139,7 +132,6 @@ export const fieldsFieldConfig = {
         onChange: (value: string) => updateFormData({ llm_prompt: value }),
         type: "textarea" as const,
         placeholder: "Optional prompt for AI extraction (leave empty for manual entry)",
-        showCharCount: true,
       },
     ]
   },

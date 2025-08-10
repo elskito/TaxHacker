@@ -102,7 +102,6 @@ export const namedEntityFieldConfig = {
       onChange: (value: string) => updateFormData({ llm_prompt: value }),
       type: "textarea" as const,
       placeholder: `Optional prompt for AI ${entityType.toLowerCase()} ${entityType === "Category" ? "categorization" : "detection"}`,
-      showCharCount: true,
     },
     {
       id: "color",

@@ -84,7 +84,6 @@ export function FieldsTable({ fields, onAdd, onEdit, onDelete }: FieldsTableProp
             onChange={field.onChange}
             type={field.type}
             placeholder={field.placeholder}
-            showCharCount={field.showCharCount}
           />
         ))}
         
@@ -177,7 +176,6 @@ export function FieldsTable({ fields, onAdd, onEdit, onDelete }: FieldsTableProp
             onChange={field.onChange}
             type={field.type}
             placeholder={field.placeholder}
-            showCharCount={field.showCharCount}
           />
         ))}
         

@@ -175,7 +175,6 @@ export interface FieldConfig {
   disabled?: boolean
   options?: Array<{ label: string; value: any }>
   validation?: (value: any) => string | undefined
-  showCharCount?: boolean
   maxLength?: number
   transform?: (value: any) => any
 }
