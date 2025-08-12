@@ -464,6 +464,16 @@ export const DEFAULT_FIELDS = [
     isRequired: false,
     isExtra: false,
   },
+  {
+    code: "paymentStatus",
+    name: "Payment Status",
+    type: "string",
+    llm_prompt: "",
+    isVisibleInList: true,
+    isVisibleInAnalysis: false,
+    isRequired: false,
+    isExtra: false,
+  },
 ]
 
 export async function createUserDefaults(userId: string) {

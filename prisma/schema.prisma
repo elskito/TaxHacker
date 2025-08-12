@@ -190,6 +190,7 @@ model Transaction {
   issuedAt              DateTime? @map("issued_at")
   dueDate               DateTime? @map("due_date")
   dateOfSale            DateTime? @map("date_of_sale")
+  payments              Payment[]
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   text                  String?
@@ -202,6 +203,20 @@ model Transaction {
   @@index([merchant])
   @@index([total])
   @@map("transactions")
+}
+
+model Payment {
+  id            String      @id @default(uuid()) @db.Uuid
+  transactionId String      @map("transaction_id") @db.Uuid
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  amount        Int
+  paidAt        DateTime    @map("paid_at")
+  note          String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([transactionId])
+  @@index([paidAt])
+  @@map("payments")
 }
 
 model Currency {

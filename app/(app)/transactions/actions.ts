@@ -12,6 +12,7 @@ import {
 } from "@/lib/files"
 import { updateField } from "@/models/fields"
 import { createFile, deleteFile } from "@/models/files"
+import { createPayment, getTotalPaidAmount } from "@/models/payments"
 import {
   bulkDeleteTransactions,
   createTransaction,
@@ -56,6 +57,9 @@ export async function saveTransactionAction(
   try {
     const user = await getCurrentUser()
     const transactionId = formData.get("transactionId") as string
+    const newPaymentAmount = formData.get("newPaymentAmount") as string
+    const newPaymentDate = formData.get("newPaymentDate") as string
+    
     const validatedForm = transactionFormSchema.safeParse(Object.fromEntries(formData.entries()))
 
     if (!validatedForm.success) {
@@ -63,6 +67,39 @@ export async function saveTransactionAction(
     }
 
     const transaction = await updateTransaction(transactionId, user.id, validatedForm.data)
+
+    // Create payment if provided
+    if (newPaymentAmount && newPaymentDate) {
+      const amount = parseFloat(newPaymentAmount)
+      if (isNaN(amount) || amount <= 0) {
+        return { success: false, error: "Invalid payment amount" }
+      }
+      
+      const paymentDate = new Date(newPaymentDate)
+      if (isNaN(paymentDate.getTime())) {
+        return { success: false, error: "Invalid payment date" }
+      }
+      
+      // Security: Validate payment amount doesn't exceed transaction total
+      const totalPaid = await getTotalPaidAmount(transactionId)
+      const remainingAmount = (transaction.total || 0) - totalPaid
+      const amountInCents = Math.round(amount * 100)
+      
+      if (amountInCents > remainingAmount) {
+        return { success: false, error: "Payment amount exceeds remaining balance" }
+      }
+      
+      try {
+        await createPayment(transactionId, user.id, {
+          amount: amountInCents,
+          paidAt: paymentDate,
+        })
+      } catch (paymentError) {
+        console.error("Failed to create payment:", paymentError)
+        // Rollback transaction update if payment creation fails
+        return { success: false, error: `Failed to create payment: ${paymentError instanceof Error ? paymentError.message : 'Unknown error'}` }
+      }
+    }
 
     revalidatePath("/transactions")
     return { success: true, data: transaction }
@@ -226,3 +263,4 @@ export async function updateFieldVisibilityAction(fieldCode: string, isVisible: 
     return { success: false, error: "Failed to update field visibility" }
   }
 }
+
