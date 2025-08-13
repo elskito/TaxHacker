@@ -2,7 +2,7 @@
 
 import { Transaction, Field } from "@/prisma/client"
 import { Card } from "@/components/ui/card"
-import { FormInput } from "@/components/forms/simple"
+import { FormInput, FormTextarea } from "@/components/forms/simple"
 import { createFieldMap } from "@/lib/field-utils"
 
 interface TransactionBasicInfoProps {
@@ -30,11 +30,12 @@ export default function TransactionBasicInfo({ transaction, fields }: Transactio
           isRequired={fieldMap.merchant?.isRequired || false}
         />
         
-        <FormInput
+        <FormTextarea
           title={fieldMap.description?.name || "Description"}
           name="description"
           defaultValue={transaction?.description || ""}
           isRequired={fieldMap.description?.isRequired || false}
+          className="resize-none"
         />
       </div>
     </Card>
