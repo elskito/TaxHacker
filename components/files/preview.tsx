@@ -5,6 +5,7 @@ import { File } from "@/prisma/client"
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
+import { format } from "date-fns"
 
 export function FilePreview({ file }: { file: File }) {
   const [isEnlarged, setIsEnlarged] = useState(false)
@@ -40,9 +41,9 @@ export function FilePreview({ file }: { file: File }) {
           <p className="text-sm overflow-ellipsis">
             <strong>Type:</strong> {file.mimetype}
           </p>
-          {/* <p className="text-sm overflow-ellipsis">
+           <p className="text-sm overflow-ellipsis">
             <strong>Uploaded:</strong> {format(file.createdAt, "MMM d, yyyy")}
-          </p> */}
+          </p>
           <p className="text-sm">
             <strong>Size:</strong> {formatBytes(fileSize)}
           </p>

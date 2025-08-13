@@ -61,6 +61,8 @@ export default function TransactionEditForm({
     return totalPaid + pendingPaymentAmount
   }, [totalPaid, pendingPaymentAmount])
   
+  // Move computed values after formData state initialization
+
   const [formData, setFormData] = useState({
     name: transaction.name || "",
     merchant: transaction.merchant || "",
@@ -87,9 +89,20 @@ export default function TransactionEditForm({
         }
         return acc
       },
-      {} as Record<string, any>
+      {} as Record<string, string | boolean>
     ),
   })
+
+  // Extract complex logic into computed values
+  const shouldShowCurrencyConversion = useMemo(() => {
+    return formData.convertedTotal !== null && 
+           (formData.currencyCode !== settings.default_currency || formData.convertedTotal !== 0)
+  }, [formData.convertedTotal, formData.currencyCode, settings.default_currency])
+
+  const shouldShowConvertedCurrencySelect = useMemo(() => {
+    return (!formData.convertedCurrencyCode || formData.convertedCurrencyCode !== settings.default_currency) && 
+           (formData.currencyCode !== settings.default_currency || formData.convertedTotal !== 0)
+  }, [formData.convertedCurrencyCode, formData.currencyCode, settings.default_currency, formData.convertedTotal])
 
   const fieldMap = useMemo(() => {
     return fields.reduce(
@@ -101,9 +114,9 @@ export default function TransactionEditForm({
     )
   }, [fields])
 
-  const handleDelete = async () => {
-    startTransition(async () => {
-      await deleteAction(transaction.id)
+  const handleDelete = () => {
+    startTransition(() => {
+      deleteAction(transaction.id)
       router.back()
     })
     setDeleteModalOpen(false)
@@ -116,16 +129,11 @@ export default function TransactionEditForm({
   useEffect(() => {
     if (saveState?.success) {
       router.back()
-    }
-  }, [saveState, router])
-
-  useEffect(() => {
-    if (saveState?.success) {
       setSettleModalOpen(false)
       setNewPaymentAmount("")
       setNewPaymentDate("")
     }
-  }, [saveState])
+  }, [saveState, router])
 
   return (
     <div>
@@ -138,6 +146,7 @@ export default function TransactionEditForm({
           aria-label={`Payment status: ${totalPaidWithPending >= (transaction.total || 0) ? "Paid" : "Unpaid"}. Click to manage payments.`}
           aria-expanded={settleModalOpen}
           aria-haspopup="dialog"
+          aria-describedby="payment-summary"
         >
           {totalPaidWithPending >= (transaction.total || 0) ? (
             <>
@@ -145,7 +154,7 @@ export default function TransactionEditForm({
               {pendingPaymentAmount > 0 ? "Will be Paid" : "Paid"}
             </>
           ) : (
-            <div className="flex flex-col items-center">
+            <div id="payment-summary" className="flex flex-col items-center">
               <div className="flex items-center">
                 <Plus className="h-4 w-4 mr-2" />
                 Paid {(totalPaid / 100).toFixed(2)} / {((transaction.total || 0) / 100).toFixed(2)} {transaction.currencyCode}
@@ -197,11 +206,12 @@ export default function TransactionEditForm({
                 <h4 className="font-medium">Add Payment</h4>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="payment-amount">
                   Amount to Pay
                 </label>
                 <div className="flex items-center space-x-2">
                   <input
+                    id="payment-amount"
                     type="number"
                     step="0.01"
                     min="0"
@@ -219,7 +229,6 @@ export default function TransactionEditForm({
                     }}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm flex-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0.00"
-                    aria-label="Payment amount"
                     aria-describedby="payment-amount-error"
                   />
                   <span className="text-sm text-gray-500 whitespace-nowrap">
@@ -234,10 +243,11 @@ export default function TransactionEditForm({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="payment-date">
                   Payment Date
                 </label>
                 <input
+                  id="payment-date"
                   type="date"
                   value={newPaymentDate}
                   onChange={(e) => setNewPaymentDate(e.target.value)}
@@ -258,8 +268,13 @@ export default function TransactionEditForm({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => setSettleModalOpen(false)}
-                  disabled={!newPaymentAmount || !newPaymentDate || parseFloat(newPaymentAmount) <= 0}
+                  onClick={() => {
+                    // Validation is already handled by disabled state
+                    // The payment data is included in the form through hidden inputs
+                    setSettleModalOpen(false)
+                  }}
+                  disabled={!newPaymentAmount || !newPaymentDate || parseFloat(newPaymentAmount) <= 0 || 
+                           parseFloat(newPaymentAmount) > (((transaction.total || 0) - totalPaid) / 100)}
                 >
                   Add to Transaction
                 </Button>
@@ -284,17 +299,31 @@ export default function TransactionEditForm({
         <TransactionDates transaction={transaction} fields={fields} />
       </div>
 
-      <div className="flex flex-row gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
         <FormInput
           title={fieldMap.total.name}
           type="number"
           step="0.01"
           name="total"
           defaultValue={formData.total.toFixed(2)}
-          className="w-32"
+          className="w-full"
           isRequired={fieldMap.total.isRequired}
         />
 
+        {shouldShowCurrencyConversion && (
+          <FormInput
+            title={`Total converted to ${formData.convertedCurrencyCode || "UNKNOWN CURRENCY"}`}
+            type="number"
+            step="0.01"
+            name="convertedTotal"
+            defaultValue={formData.convertedTotal.toFixed(2)}
+            isRequired={fieldMap.convertedTotal.isRequired}
+            className="w-full"
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4">
         <FormSelectCurrency
           title={fieldMap.currencyCode.name}
           name="currencyCode"
@@ -306,6 +335,16 @@ export default function TransactionEditForm({
           isRequired={fieldMap.currencyCode.isRequired}
         />
 
+        {shouldShowConvertedCurrencySelect && (
+          <FormSelectCurrency
+            title="Convert to"
+            name="convertedCurrencyCode"
+            defaultValue={formData.convertedCurrencyCode || settings.default_currency}
+            currencies={currencies}
+            isRequired={fieldMap.convertedCurrencyCode.isRequired}
+          />
+        )}
+
         <FormSelectType
           title={fieldMap.type.name}
           name="type"
@@ -314,32 +353,7 @@ export default function TransactionEditForm({
         />
       </div>
 
-      {formData.currencyCode !== settings.default_currency || formData.convertedTotal !== 0 ? (
-        <div className="flex flex-row flex-grow gap-4">
-          {formData.convertedTotal !== null && (
-              <FormInput
-                title={`Total converted to ${formData.convertedCurrencyCode || "UNKNOWN CURRENCY"}`}
-                type="number"
-                step="0.01"
-                name="convertedTotal"
-                defaultValue={formData.convertedTotal.toFixed(2)}
-                isRequired={fieldMap.convertedTotal.isRequired}
-                className="max-w-36"
-              />
-            )}
-            {(!formData.convertedCurrencyCode || formData.convertedCurrencyCode !== settings.default_currency) && (
-              <FormSelectCurrency
-                title="Convert to"
-                name="convertedCurrencyCode"
-                defaultValue={formData.convertedCurrencyCode || settings.default_currency}
-                currencies={currencies}
-                isRequired={fieldMap.convertedCurrencyCode.isRequired}
-              />
-            )}
-        </div>
-      ) : null}
-
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <FormSelectCategory
           title={fieldMap.categoryCode.name}
           categories={categories}
@@ -365,59 +379,89 @@ export default function TransactionEditForm({
         isRequired={fieldMap.note.isRequired}
       />
 
-      <div className="flex flex-wrap gap-4">
-        {extraFields.map((field) => {
-          if (field.type === "select" && field.options && Array.isArray(field.options)) {
-            const selectItems = (field.options as string[]).map((option: string) => ({
-              code: option,
-              name: option
-            }))
+      {(fieldMap.vat_rate || fieldMap.vat) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          {fieldMap.vat_rate && (
+            <FormInput
+              title={fieldMap.vat_rate.name}
+              type="number"
+              step="0.01"
+              name="vat_rate"
+              defaultValue={(formData["vat_rate" as keyof typeof formData] as string) || ""}
+              className="w-full"
+              isRequired={fieldMap.vat_rate.isRequired}
+            />
+          )}
+
+          {fieldMap.vat && (
+            <FormInput
+              title={fieldMap.vat.name}
+              type="number"
+              step="0.01"
+              name="vat"
+              defaultValue={(formData["vat" as keyof typeof formData] as string) || ""}
+              isRequired={fieldMap.vat.isRequired}
+              className="w-full"
+            />
+          )}
+        </div>
+      )}
+
+      {extraFields.filter(field => field.code !== "vat_rate" && field.code !== "vat").length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {extraFields.filter(field => field.code !== "vat_rate" && field.code !== "vat").map((field) => {
+            if (field.type === "select" && field.options && Array.isArray(field.options)) {
+              const selectItems = (field.options as string[]).map((option: string) => ({
+                code: option,
+                name: option
+              }))
+              
+              return (
+                <FormSelect
+                  key={field.code}
+                  title={field.name}
+                  name={field.code}
+                  items={selectItems}
+                  value={(formData[field.code as keyof typeof formData] as string) || ""}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, [field.code]: value })
+                  }}
+                  isRequired={field.isRequired}
+                  placeholder={`Select ${field.name.toLowerCase()}`}
+                  emptyValue="Not Defined"
+                />
+              )
+            }
+            
+            if (field.type === "boolean") {
+              return (
+                <FormCheckbox
+                  key={field.code}
+                  title={field.name}
+                  name={field.code}
+                  defaultChecked={formData[field.code as keyof typeof formData] as boolean}
+                  onChange={(checked) => {
+                    setFormData({ ...formData, [field.code]: checked })
+                  }}
+                  isRequired={field.isRequired}
+                />
+              )
+            }
             
             return (
-              <FormSelect
+              <FormInput
                 key={field.code}
+                type={field.type === "number" ? "number" : "text"}
                 title={field.name}
                 name={field.code}
-                items={selectItems}
-                value={(formData[field.code as keyof typeof formData] as string) || ""}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, [field.code]: value })
-                }}
+                defaultValue={(formData[field.code as keyof typeof formData] as string) || ""}
                 isRequired={field.isRequired}
-                placeholder={`Select ${field.name.toLowerCase()}`}
-                emptyValue="Not Defined"
+                className={field.type === "number" ? "max-w-36" : ""}
               />
             )
-          }
-          
-          if (field.type === "boolean") {
-            return (
-              <FormCheckbox
-                key={field.code}
-                title={field.name}
-                name={field.code}
-                defaultChecked={formData[field.code as keyof typeof formData] as boolean}
-                onChange={(checked) => {
-                  setFormData({ ...formData, [field.code]: checked })
-                }}
-                isRequired={field.isRequired}
-              />
-            )
-          }
-          
-          return (
-            <FormInput
-              key={field.code}
-              type={field.type === "number" ? "number" : "text"}
-              title={field.name}
-              name={field.code}
-              defaultValue={(formData[field.code as keyof typeof formData] as string) || ""}
-              isRequired={field.isRequired}
-              className={field.type === "number" ? "max-w-36" : "max-w-full"}
-            />
-          )
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       {formData.items && Array.isArray(formData.items) && formData.items.length > 0 && (
         <ToolWindow title="Detected items">
