@@ -98,6 +98,7 @@ export const DEFAULT_CATEGORIES = [
     llm_prompt: "transportation costs, fuel, car rental, vignettes, etc",
   },
   { code: "software", name: "Software", color: "#2b5a1d", llm_prompt: "software, licenses" },
+  { code: "benefit", name: "Benefit", color: "#4a90e2", llm_prompt: "benefits, perks, employee benefits" },
   { code: "other", name: "Other", color: "#121216", llm_prompt: "other, miscellaneous," },
 ]
 

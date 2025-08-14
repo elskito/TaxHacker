@@ -50,10 +50,10 @@ export const transactionFormSchema = z
         z.date(),
         z
           .string()
-          .refine((val) => !isNaN(Date.parse(val)), {
+          .refine((val) => val === "" || !isNaN(Date.parse(val)), {
             message: "Invalid date format",
           })
-          .transform((val) => new Date(val)),
+          .transform((val) => val === "" ? undefined : new Date(val)),
       ])
       .optional(),
     dateOfSale: z
@@ -61,10 +61,10 @@ export const transactionFormSchema = z
         z.date(),
         z
           .string()
-          .refine((val) => !isNaN(Date.parse(val)), {
+          .refine((val) => val === "" || !isNaN(Date.parse(val)), {
             message: "Invalid date format",
           })
-          .transform((val) => new Date(val)),
+          .transform((val) => val === "" ? undefined : new Date(val)),
       ])
       .optional(),
     text: z.string().optional(),
