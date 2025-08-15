@@ -3,6 +3,7 @@ import { fileExists, getStaticDirectory, safePathJoin } from "@/lib/files"
 import fs from "fs/promises"
 import lookup from "mime-types"
 import { NextResponse } from "next/server"
+import { join } from "path"
 
 export async function GET(request: Request, { params }: { params: Promise<{ filename: string }> }) {
   const { filename } = await params
@@ -17,6 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
   try {
     const fullFilePath = safePathJoin(staticFilesDirectory, filename)
     const isFileExists = await fileExists(fullFilePath)
+    
     if (!isFileExists) {
       return new NextResponse(`File not found for user: ${filename}`, { status: 404 })
     }

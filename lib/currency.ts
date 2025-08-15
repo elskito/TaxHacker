@@ -75,3 +75,10 @@ export async function getCurrencyRate(currencyCodeFrom: string, currencyCodeTo: 
     return await getCurrencyRateFromXE(currencyCodeFrom, currencyCodeTo, date)
   }
 }
+
+export function formatCurrency(amount: number, currencyCode: string): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currencyCode,
+  }).format(amount / 100)
+}

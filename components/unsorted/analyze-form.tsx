@@ -3,21 +3,21 @@
 import { useNotification } from "@/app/(app)/context"
 import { analyzeFileAction, deleteUnsortedFileAction, saveFileAsTransactionAction } from "@/app/(app)/unsorted/actions"
 import { CurrencyConverterTool } from "@/components/agents/currency-converter"
-import { ItemsDetectTool } from "@/components/agents/items-detect"
 import ToolWindow from "@/components/agents/tool-window"
 import { FormError } from "@/components/forms/error"
 import { FormSelectCategory } from "@/components/forms/select-category"
 import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
-import { FormInput, FormTextarea, FormCheckbox } from "@/components/forms/simple"
+import { FormInput, FormCheckbox } from "@/components/forms/simple"
 import { FormSelectField } from "@/components/forms/select-field"
-import { DeleteModal } from "@/components/transactions/delete-file-modal"
+import UnsortedDates from "@/components/unsorted/dates"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Category, Currency, Field, File, Project } from "@/prisma/client"
 import { format, subDays } from "date-fns"
-import { ArrowDownToLine, Brain, Loader2, Trash2 } from "lucide-react"
+import { Brain, Loader2, Save, Trash2 } from "lucide-react"
 import { startTransition, useActionState, useMemo, useState } from "react"
 
 export default function AnalyzeForm({
@@ -39,7 +39,7 @@ export default function AnalyzeForm({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analyzeStep, setAnalyzeStep] = useState<string>("")
   const [analyzeError, setAnalyzeError] = useState<string>("")
-  const [deleteState, deleteAction, isDeleting] = useActionState(deleteUnsortedFileAction, null)
+  const [, deleteAction, isDeleting] = useActionState(deleteUnsortedFileAction, null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -241,21 +241,35 @@ export default function AnalyzeForm({
           required={fieldMap.description.isRequired}
         />
 
-        <div className="flex flex-wrap gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
           <FormInput
             title={fieldMap.total.name}
             name="total"
             type="number"
             step="0.01"
-            value={formData.total || ""}
-            onChange={(e) => {
-              const newValue = parseFloat(e.target.value || "0")
-              !isNaN(newValue) && setFormData((prev) => ({ ...prev, total: newValue }))
-            }}
-            className="w-32"
+            value={formData.total}
+            onChange={(e) => setFormData((prev) => ({ ...prev, total: parseFloat(e.target.value) || 0 }))}
+            hideIfEmpty={!fieldMap.total.isVisibleInAnalysis}
             required={fieldMap.total.isRequired}
+            className="w-full"
           />
 
+          {formData.currencyCode !== settings.default_currency && formData.convertedTotal !== 0 && (
+            <FormInput
+              title={`Total converted to ${formData.convertedCurrencyCode || settings.default_currency}`}
+              name="convertedTotal"
+              type="number"
+              step="0.01"
+              value={formData.convertedTotal}
+              onChange={(e) => setFormData((prev) => ({ ...prev, convertedTotal: parseFloat(e.target.value) || 0 }))}
+              hideIfEmpty={!fieldMap.convertedTotal.isVisibleInAnalysis}
+              required={fieldMap.convertedTotal.isRequired}
+              className="w-full"
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4">
           <FormSelectCurrency
             title={fieldMap.currencyCode.name}
             currencies={currencies}
@@ -276,7 +290,7 @@ export default function AnalyzeForm({
           />
         </div>
 
-        {formData.total != 0 && formData.currencyCode && formData.currencyCode !== settings.default_currency && (
+        {formData.currencyCode !== settings.default_currency && (
           <ToolWindow title={`Exchange rate on ${format(rateDate, "LLLL dd, yyyy")}`}>
             <CurrencyConverterTool
               originalTotal={formData.total}
@@ -289,35 +303,17 @@ export default function AnalyzeForm({
           </ToolWindow>
         )}
 
-        <div className="flex flex-row gap-4">
-          <FormInput
-            title={fieldMap.issuedAt.name}
-            type="date"
-            name="issuedAt"
-            value={formData.issuedAt}
-            onChange={(e) => setFormData((prev) => ({ ...prev, issuedAt: e.target.value }))}
-            hideIfEmpty={!fieldMap.issuedAt.isVisibleInAnalysis}
-            required={fieldMap.issuedAt.isRequired}
-          />
-          
-          <FormInput
-            title="Due Date"
-            type="date"
-            name="dueDate"
-            value={formData.dueDate}
-            onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
-          />
-          
-          <FormInput
-            title="Date of Sale"
-            type="date"
-            name="dateOfSale"
-            value={formData.dateOfSale}
-            onChange={(e) => setFormData((prev) => ({ ...prev, dateOfSale: e.target.value }))}
-          />
-        </div>
+        <UnsortedDates
+          formData={{
+            issuedAt: formData.issuedAt,
+            dueDate: formData.dueDate,
+            dateOfSale: formData.dateOfSale,
+          }}
+          onFormDataChange={(update) => setFormData((prev) => ({ ...prev, ...update }))}
+          fields={fields}
+        />
 
-        <div className="flex flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <FormSelectCategory
             title={fieldMap.categoryCode.name}
             categories={categories}
@@ -329,18 +325,16 @@ export default function AnalyzeForm({
             required={fieldMap.categoryCode.isRequired}
           />
 
-          {projects.length > 0 && (
-            <FormSelectProject
-              title={fieldMap.projectCode.name}
-              projects={projects}
-              name="projectCode"
-              value={formData.projectCode}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, projectCode: value }))}
-              placeholder="Select Project"
-              hideIfEmpty={!fieldMap.projectCode.isVisibleInAnalysis}
-              required={fieldMap.projectCode.isRequired}
-            />
-          )}
+          <FormSelectProject
+            title={fieldMap.projectCode.name}
+            projects={projects}
+            name="projectCode"
+            value={formData.projectCode}
+            onValueChange={(value) => setFormData((prev) => ({ ...prev, projectCode: value }))}
+            placeholder="Select Project"
+            hideIfEmpty={!fieldMap.projectCode.isVisibleInAnalysis}
+            required={fieldMap.projectCode.isRequired}
+          />
         </div>
 
         <FormInput
@@ -352,7 +346,41 @@ export default function AnalyzeForm({
           required={fieldMap.note.isRequired}
         />
 
-        {extraFields.map((field) => {
+        {(fieldMap.vat_rate || fieldMap.vat) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            {fieldMap.vat_rate && (
+              <FormInput
+                title={fieldMap.vat_rate.name}
+                type="number"
+                step="0.01"
+                name="vat_rate"
+                value={formData["vat_rate" as keyof typeof formData]}
+                onChange={(e) => setFormData((prev) => ({ ...prev, vat_rate: e.target.value }))}
+                hideIfEmpty={!fieldMap.vat_rate.isVisibleInAnalysis}
+                required={fieldMap.vat_rate.isRequired}
+                className="w-full"
+              />
+            )}
+
+            {fieldMap.vat && (
+              <FormInput
+                title={fieldMap.vat.name}
+                type="number"
+                step="0.01"
+                name="vat"
+                value={formData["vat" as keyof typeof formData]}
+                onChange={(e) => setFormData((prev) => ({ ...prev, vat: e.target.value }))}
+                hideIfEmpty={!fieldMap.vat.isVisibleInAnalysis}
+                required={fieldMap.vat.isRequired}
+                className="w-full"
+              />
+            )}
+          </div>
+        )}
+
+        {extraFields.filter(field => field.code !== "vat_rate" && field.code !== "vat").length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {extraFields.filter(field => field.code !== "vat_rate" && field.code !== "vat").map((field) => {
           if (field.type === "select" && field.options && Array.isArray(field.options)) {
             const options = field.options.filter((opt): opt is string => typeof opt === 'string')
             return (
@@ -395,66 +423,56 @@ export default function AnalyzeForm({
               onChange={(e) => setFormData((prev) => ({ ...prev, [field.code]: e.target.value }))}
               hideIfEmpty={!field.isVisibleInAnalysis}
               required={field.isRequired}
+              className={field.type === "number" ? "max-w-36" : ""}
             />
           )
         })}
-
-        {formData.items && formData.items.length > 0 && (
-          <ToolWindow title="Detected items">
-            <ItemsDetectTool file={file} data={formData} />
-          </ToolWindow>
+          </div>
         )}
 
-        <div className="hidden">
-          <input type="text" name="items" value={JSON.stringify(formData.items)} readOnly />
-          <FormTextarea
-            title={fieldMap.text.name}
-            name="text"
-            value={formData.text}
-            onChange={(e) => setFormData((prev) => ({ ...prev, text: e.target.value }))}
-            hideIfEmpty={!fieldMap.text.isVisibleInAnalysis}
-          />
-        </div>
-
-        <div className="flex justify-between gap-4 pt-6">
-          <Button
-            type="button"
-            onClick={openDeleteModal}
-            variant="destructive"
-            disabled={isDeleting}
-          >
-            <Trash2 className="h-4 w-4" />
-            {isDeleting ? "⏳ Deleting..." : "Delete"}
+        <div className="flex justify-between space-x-4 pt-6">
+          <Button type="button" onClick={openDeleteModal} variant="destructive" disabled={isDeleting}>
+            <>
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? "⏳ Deleting..." : "Delete "}
+            </>
           </Button>
-
-          <Button type="submit" disabled={isSaving} data-save-button>
+          <Button type="submit" disabled={isSaving}>
             {isSaving ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (
               <>
-                <ArrowDownToLine className="h-4 w-4" />
-                Save as Transaction
+                <Save className="h-4 w-4" />
+                Save Transaction
               </>
             )}
           </Button>
         </div>
 
-        <div>
-          {deleteState?.error && <FormError>{deleteState.error}</FormError>}
-          {saveError && <FormError>{saveError}</FormError>}
-        </div>
+        <div>{saveError && <FormError>{saveError}</FormError>}</div>
       </form>
 
-      <DeleteModal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-        title="Delete File"
-        description={`Are you sure you want to delete this file? This action cannot be undone.`}
-      />
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete File</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this file? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
