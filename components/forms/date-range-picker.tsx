@@ -1,6 +1,6 @@
 "use client"
 
-import { format, startOfMonth, startOfQuarter, subMonths, subWeeks } from "date-fns"
+import { format, startOfMonth, startOfQuarter, subMonths, endOfMonth } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { DateRange } from "react-day-picker"
@@ -21,19 +21,19 @@ export function DateRangePicker({
 }) {
   const predefinedRanges = [
     {
-      code: "last-4-weeks",
-      label: "Last 4 weeks",
-      range: { from: subWeeks(new Date(), 4), to: new Date() },
+      code: "this-month",
+      label: "This month",
+      range: { from: startOfMonth(new Date()), to: new Date() },
+    },
+    {
+      code: "last-month",
+      label: "Last month",
+      range: { from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) },
     },
     {
       code: "last-12-months",
       label: "Last 12 months",
       range: { from: subMonths(new Date(), 12), to: new Date() },
-    },
-    {
-      code: "month-to-date",
-      label: "Month to date",
-      range: { from: startOfMonth(new Date()), to: new Date() },
     },
     {
       code: "quarter-to-date",

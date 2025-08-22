@@ -2,6 +2,7 @@ import { FiltersWidget } from "@/components/dashboard/filters-widget"
 import { IncomeExpenseGraph } from "@/components/dashboard/income-expense-graph"
 import { ProjectsWidget } from "@/components/dashboard/projects-widget"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCurrentUser } from "@/lib/auth"
 import { formatCurrency } from "@/lib/utils"
 import { getProjects } from "@/models/projects"
@@ -36,41 +37,73 @@ export async function StatsWidget({ filters }: { filters: TransactionFilters }) 
       {statsTimeSeries.length > 0 && <IncomeExpenseGraph data={statsTimeSeries} defaultCurrency={defaultCurrency} />}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Link href="/transactions?type=income">
-          <Card className="bg-gradient-to-br from-white via-green-50/30 to-emerald-50/40 border-green-200/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-              <ArrowUp className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              {Object.entries(stats.totalIncomePerCurrency).map(([currency, total]) => (
-                <div
-                  key={currency}
-                  className="flex gap-2 items-center font-bold text-base first:text-2xl text-green-500"
-                >
-                  {formatCurrency(total, currency)}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/transactions?type=income">
+                <Card className="bg-gradient-to-br from-white via-green-50/30 to-emerald-50/40 border-green-200/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                    <ArrowUp className="h-4 w-4 text-green-500" />
+                  </CardHeader>
+                  <CardContent>
+                    {Object.entries(stats.totalIncomePerCurrency).map(([currency, total]) => (
+                      <div
+                        key={currency}
+                        className="flex gap-2 items-center font-bold text-base first:text-2xl text-green-500"
+                      >
+                        {formatCurrency(total, currency)}
+                      </div>
+                    ))}
+                    {!Object.entries(stats.totalIncomePerCurrency).length && <div className="text-2xl font-bold">0.00</div>}
+                  </CardContent>
+                </Card>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-sm">
+                <div className="font-medium mb-1">Income Invoice Status</div>
+                <div>Paid invoices: {stats.paidIncomeInvoicesCount}</div>
+                <div>Total invoices: {stats.totalIncomeInvoicesCount}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Based on selected date range
                 </div>
-              ))}
-              {!Object.entries(stats.totalIncomePerCurrency).length && <div className="text-2xl font-bold">0.00</div>}
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/transactions?type=expense">
-          <Card className="bg-gradient-to-br from-white via-red-50/30 to-rose-50/40 border-red-200/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-              <ArrowDown className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              {Object.entries(stats.totalExpensesPerCurrency).map(([currency, total]) => (
-                <div key={currency} className="flex gap-2 items-center font-bold text-base first:text-2xl text-red-500">
-                  {formatCurrency(total, currency)}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/transactions?type=expense">
+                <Card className="bg-gradient-to-br from-white via-red-50/30 to-rose-50/40 border-red-200/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                    <ArrowDown className="h-4 w-4 text-red-500" />
+                  </CardHeader>
+                  <CardContent>
+                    {Object.entries(stats.totalExpensesPerCurrency).map(([currency, total]) => (
+                      <div key={currency} className="flex gap-2 items-center font-bold text-base first:text-2xl text-red-500">
+                        {formatCurrency(total, currency)}
+                      </div>
+                    ))}
+                    {!Object.entries(stats.totalExpensesPerCurrency).length && <div className="text-2xl font-bold">0.00</div>}
+                  </CardContent>
+                </Card>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-sm">
+                <div className="font-medium mb-1">Expense Invoice Status</div>
+                <div>Paid invoices: {stats.paidExpenseInvoicesCount}</div>
+                <div>Total invoices: {stats.totalExpenseInvoicesCount}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Based on selected date range
                 </div>
-              ))}
-              {!Object.entries(stats.totalExpensesPerCurrency).length && <div className="text-2xl font-bold">0.00</div>}
-            </CardContent>
-          </Card>
-        </Link>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <Link href="/transactions">
           <Card className="bg-gradient-to-br from-white via-pink-50/30 to-indigo-50/40 border-pink-200/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
