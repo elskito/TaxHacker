@@ -9,6 +9,10 @@ export type DashboardStats = {
   totalExpensesPerCurrency: Record<string, number>
   profitPerCurrency: Record<string, number>
   invoicesProcessed: number
+  paidIncomeInvoicesCount: number
+  paidExpenseInvoicesCount: number
+  totalIncomeInvoicesCount: number
+  totalExpenseInvoicesCount: number
 }
 
 export const getDashboardStats = cache(
@@ -22,9 +26,18 @@ export const getDashboardStats = cache(
       }
     }
 
-    const transactions = await prisma.transaction.findMany({ where: { ...where, userId } })
-    const totalIncomePerCurrency = calcTotalPerCurrency(transactions.filter((t) => t.type === "income"))
-    const totalExpensesPerCurrency = calcTotalPerCurrency(transactions.filter((t) => t.type === "expense"))
+    const transactions = await prisma.transaction.findMany({ 
+      where: { ...where, userId },
+      include: {
+        payments: true
+      }
+    })
+    
+    const incomeTransactions = transactions.filter((t) => t.type === "income")
+    const expenseTransactions = transactions.filter((t) => t.type === "expense")
+    
+    const totalIncomePerCurrency = calcTotalPerCurrency(incomeTransactions)
+    const totalExpensesPerCurrency = calcTotalPerCurrency(expenseTransactions)
     const profitPerCurrency = Object.fromEntries(
       Object.keys(totalIncomePerCurrency).map((currency) => [
         currency,
@@ -32,12 +45,51 @@ export const getDashboardStats = cache(
       ])
     )
     const invoicesProcessed = transactions.length
+    const totalIncomeInvoicesCount = incomeTransactions.length
+    const totalExpenseInvoicesCount = expenseTransactions.length
+    
+    // Count paid income invoices
+    const paidIncomeInvoicesCount = incomeTransactions.filter((transaction) => {
+      if (transaction.payments.length === 0) return false
+      
+      // If date filters are applied, check if any payment falls within the range
+      if (filters.dateFrom || filters.dateTo) {
+        return transaction.payments.some((payment) => {
+          const paidAt = new Date(payment.paidAt)
+          if (filters.dateFrom && paidAt < new Date(filters.dateFrom)) return false
+          return !(filters.dateTo && paidAt > new Date(filters.dateTo));
+        })
+      }
+      
+      return true
+    }).length
+
+    // Count paid expense invoices
+    const paidExpenseInvoicesCount = expenseTransactions.filter((transaction) => {
+      if (transaction.payments.length === 0) return false
+      
+      // If date filters are applied, check if any payment falls within the range
+      if (filters.dateFrom || filters.dateTo) {
+        return transaction.payments.some((payment) => {
+          const paidAt = new Date(payment.paidAt)
+          if (filters.dateFrom && paidAt < new Date(filters.dateFrom)) return false
+          return !(filters.dateTo && paidAt > new Date(filters.dateTo));
+
+        })
+      }
+      
+      return true
+    }).length
 
     return {
       totalIncomePerCurrency,
       totalExpensesPerCurrency,
       profitPerCurrency,
       invoicesProcessed,
+      paidIncomeInvoicesCount,
+      paidExpenseInvoicesCount,
+      totalIncomeInvoicesCount,
+      totalExpenseInvoicesCount,
     }
   }
 )
