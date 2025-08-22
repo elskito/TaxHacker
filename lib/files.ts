@@ -36,6 +36,7 @@ export function getTransactionFileUploadPath(fileUuid: string, filename: string,
   return formatFilePath(storedFileName, transaction.issuedAt || new Date())
 }
 
+
 export function fullPathForFile(user: User, file: File) {
   const userUploadsDirectory = getUserUploadsDirectory(user)
   return safePathJoin(userUploadsDirectory, file.path)

@@ -40,6 +40,7 @@ model User {
   sessions            Session[]
   appData             AppData[]
   progress            Progress[]
+  taxes               Tax[]
 
   @@map("users")
 }
@@ -253,4 +254,38 @@ model Progress {
 
   @@index([userId])
   @@map("progress")
+}
+
+model Tax {
+  id                String       @id @default(uuid()) @db.Uuid
+  userId            String       @map("user_id") @db.Uuid
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String       @map("tax_type")
+  amount            Int
+  currencyCode      String       @default("USD") @map("currency_code")
+  dueDate           DateTime     @map("due_date")
+  bankAccountNumber String?      @map("bank_account_number")
+  notes             String?
+  payments          TaxPayment[]
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([dueDate])
+  @@map("taxes")
+}
+
+model TaxPayment {
+  id                 String    @id @default(uuid()) @db.Uuid
+  taxId              String    @map("tax_id") @db.Uuid
+  tax                Tax       @relation(fields: [taxId], references: [id], onDelete: Cascade)
+  amount             Int
+  paidAt             DateTime  @map("paid_at")
+  proofOfPaymentFile String?   @map("proof_of_payment_file")
+  note               String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  @@index([taxId])
+  @@index([paidAt])
+  @@map("tax_payments")
 }
