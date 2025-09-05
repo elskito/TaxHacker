@@ -18,14 +18,8 @@ export function TaxFormWrapper({ onSuccess, currencies, defaultCurrency }: TaxFo
   const handleSubmit = async (data: TaxFormData) => {
     setIsLoading(true)
     try {
-      const formData = new FormData()
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value instanceof Date ? value.toISOString() : String(value))
-        }
-      })
       
-      await createTaxAction(formData)
+      await createTaxAction(data)
       toast.success("Tax added successfully")
       
       // Call onSuccess to close the modal

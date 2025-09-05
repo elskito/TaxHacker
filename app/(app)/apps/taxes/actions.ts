@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { taxFormSchema, addTaxPaymentSchema } from "@/forms/taxes"
+import { addTaxPaymentSchema, TaxFormData } from "@/forms/taxes"
 import { createTax, updateTax, deleteTax, addTaxPayment } from "@/models/taxes"
 import { getCurrentUser } from "@/lib/auth"
 import { randomUUID } from "crypto"
@@ -11,25 +11,14 @@ import { getUserUploadsDirectory, safePathJoin, getDirectorySize } from "@/lib/f
 import { createFile } from "@/models/files"
 import { updateUser } from "@/models/users"
 
-export async function createTaxAction(formData: FormData) {
+export async function createTaxAction(data: TaxFormData) {
   const user = await getCurrentUser()
   if (!user) {
     throw new Error("User not authenticated")
   }
 
-  const rawData = {
-    type: formData.get("type"),
-    amount: formData.get("amount"),
-    currencyCode: formData.get("currencyCode"),
-    dueDate: formData.get("dueDate"),
-    bankAccountNumber: formData.get("bankAccountNumber"),
-    notes: formData.get("notes"),
-  }
-
-  const validatedData = taxFormSchema.parse(rawData)
-
   try {
-    await createTax(validatedData)
+    await createTax(data)
     revalidatePath("/apps/taxes")
     return { success: true }
   } catch (error) {
@@ -38,23 +27,13 @@ export async function createTaxAction(formData: FormData) {
   }
 }
 
-export async function updateTaxAction(id: string, formData: FormData) {
+export async function updateTaxAction(id: string, data: TaxFormData) {
   const user = await getCurrentUser()
   if (!user) {
     throw new Error("User not authenticated")
   }
 
-  const rawData = {
-    type: formData.get("type"),
-    amount: formData.get("amount"),
-    currencyCode: formData.get("currencyCode"),
-    dueDate: formData.get("dueDate"),
-    bankAccountNumber: formData.get("bankAccountNumber"),
-    notes: formData.get("notes"),
-  }
-
-  const validatedData = taxFormSchema.parse(rawData)
-  const taxData = { id, ...validatedData }
+  const taxData = { id, ...data }
 
   try {
     await updateTax(taxData)

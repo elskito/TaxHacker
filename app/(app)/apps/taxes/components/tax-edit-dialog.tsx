@@ -41,14 +41,7 @@ export function TaxEditDialog({ tax, open, onOpenChange, onSuccess, currencies, 
     
     setIsLoading(true)
     try {
-      const formData = new FormData()
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value instanceof Date ? value.toISOString() : String(value))
-        }
-      })
-      
-      await updateTaxAction(tax.id, formData)
+      await updateTaxAction(tax.id, data)
       toast.success("Tax updated successfully")
       
       // Close dialog
