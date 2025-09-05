@@ -3,15 +3,10 @@ import { z } from "zod"
 export const taxFormSchema = z.object({
   type: z.string().min(1, "Tax type is required").max(64),
   amount: z
-    .union([
-      z.number(),
-      z.string()
-        .min(1, "Amount is required")
-        .refine((val) => !isNaN(parseFloat(val)), "Amount must be a valid number")
-        .transform((val) => parseFloat(val))
-    ])
-    .refine((num) => num > 0, "Amount must be a positive number")
-    .transform((num) => Math.round(num * 100)), // convert to cents
+    .string()
+    .min(1, "Amount is required")
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, "Amount must be a positive number")
+    .transform((val) => Math.round(parseFloat(val) * 100)), // convert to cents
   currencyCode: z.string()
     .min(3, "Currency code is required")
     .max(5)
@@ -55,13 +50,8 @@ export const addTaxPaymentSchema = z.object({
   amount: z
     .string()
     .min(1, "Amount is required")
-    .transform((val) => {
-      const num = parseFloat(val)
-      if (isNaN(num) || num <= 0) {
-        throw new z.ZodError([{ message: "Amount must be a positive number", path: ["amount"], code: z.ZodIssueCode.custom }])
-      }
-      return Math.round(num * 100) // convert to cents
-    }),
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, "Amount must be a positive number")
+    .transform((val) => Math.round(parseFloat(val) * 100)), // convert to cents
   paidAt: z
     .union([
       z.date(),
