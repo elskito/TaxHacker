@@ -1,11 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { format, isBefore, startOfToday } from "date-fns"
-import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle, Clock, Edit, Trash2 } from "lucide-react"
+import { Edit, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { PaymentButtonOnly } from "@/components/shared/payment-button-only"
 import { PaymentHistoryDisplay } from "@/components/shared/payment-history-display"
@@ -77,23 +76,6 @@ export function TaxList({ taxes, onAddPayment, onEdit, onDelete }: TaxListProps)
     }
   }
 
-  const getTaxStatus = (tax: Tax) => {
-    const totalPaid = tax.payments.reduce((sum, payment) => sum + payment.amount, 0)
-    const isFullyPaid = totalPaid >= tax.amount
-    
-    if (isFullyPaid) {
-      return { status: "paid", color: "bg-green-100 text-green-800", icon: CheckCircle }
-    }
-    
-    const today = startOfToday()
-    const isOverdue = isBefore(tax.dueDate, today)
-    
-    if (isOverdue) {
-      return { status: "overdue", color: "bg-red-100 text-red-800", icon: Clock }
-    }
-    
-    return { status: "pending", color: "bg-yellow-100 text-yellow-800", icon: Clock }
-  }
 
   const formatCurrency = (amount: number, currencyCode: string) => {
     return new Intl.NumberFormat("en-US", {
@@ -117,8 +99,8 @@ export function TaxList({ taxes, onAddPayment, onEdit, onDelete }: TaxListProps)
               
               <div className="grid gap-4">
                 {monthTaxes.map((tax) => {
-                  const { status, color, icon: StatusIcon } = getTaxStatus(tax)
                   const totalPaid = tax.payments.reduce((sum, payment) => sum + payment.amount, 0)
+                  const hasAnyPayments = tax.payments.length > 0
                   
                   return (
                     <Card key={tax.id} className="hover:shadow-md transition-shadow">
@@ -127,10 +109,6 @@ export function TaxList({ taxes, onAddPayment, onEdit, onDelete }: TaxListProps)
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h4 className="font-semibold text-gray-900">{tax.type}</h4>
-                              <Badge className={color}>
-                                <StatusIcon className="w-3 h-3 mr-1" />
-                                {status === "paid" ? "Paid" : status === "overdue" ? "Overdue" : "Pending"}
-                              </Badge>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
@@ -172,6 +150,8 @@ export function TaxList({ taxes, onAddPayment, onEdit, onDelete }: TaxListProps)
                                 size="sm"
                                 variant="outline"
                                 onClick={() => onEdit(tax)}
+                                disabled={hasAnyPayments}
+                                title={hasAnyPayments ? "Cannot edit - tax has payments" : "Edit tax"}
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>

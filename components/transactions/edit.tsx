@@ -13,13 +13,19 @@ import { FormSelectType } from "@/components/forms/select-type"
 import { FormInput, FormTextarea, FormSelect, FormCheckbox } from "@/components/forms/simple"
 import { DeleteModal } from "@/components/transactions/delete-file-modal"
 import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { PaymentButtonOnly } from "@/components/shared/payment-button-only"
 import { TransactionData } from "@/models/transactions"
 import { Category, Currency, Field, Payment, Project, Transaction } from "@/prisma/client"
 import { format } from "date-fns"
-import { Loader2, Save, Trash2,  Check, Plus } from "lucide-react"
+import { CheckCircle, Loader2, Save, Trash2 } from "lucide-react"
+import { formatCurrency } from "@/lib/currency"
 import { useRouter } from "next/navigation"
-import { startTransition, useActionState, useEffect, useMemo, useState } from "react"
+import { startTransition, useActionState, useMemo, useState } from "react"
 
 export default function TransactionEditForm({
   transaction,
@@ -40,9 +46,7 @@ export default function TransactionEditForm({
   const [deleteState, deleteAction, isDeleting] = useActionState(deleteTransactionAction, null)
   const [saveState, saveAction, isSaving] = useActionState(saveTransactionAction, null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [settleModalOpen, setSettleModalOpen] = useState(false)
-  const [newPaymentAmount, setNewPaymentAmount] = useState("")
-  const [newPaymentDate, setNewPaymentDate] = useState("")
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false)
 
   const extraFields = fields.filter((field) => field.isExtra)
   
@@ -52,14 +56,10 @@ export default function TransactionEditForm({
     return transaction.payments.reduce((sum, payment) => sum + payment.amount, 0)
   }, [transaction.payments])
   
-  const pendingPaymentAmount = useMemo(() => {
-    if (!newPaymentAmount) return 0
-    return Math.round(parseFloat(newPaymentAmount) * 100)
-  }, [newPaymentAmount])
-  
-  const totalPaidWithPending = useMemo(() => {
-    return totalPaid + pendingPaymentAmount
-  }, [totalPaid, pendingPaymentAmount])
+  const isFullyPaid = useMemo(() => {
+    const remaining = (transaction.total || 0) - totalPaid
+    return remaining <= 0
+  }, [transaction.total, totalPaid])
   
   // Move computed values after formData state initialization
 
@@ -126,173 +126,75 @@ export default function TransactionEditForm({
     setDeleteModalOpen(true)
   }
 
-  useEffect(() => {
-    if (saveState?.success) {
-      router.back()
-      setSettleModalOpen(false)
-      setNewPaymentAmount("")
-      setNewPaymentDate("")
+  const handleAddPayment = async (amount: number, paidAt: Date, note?: string, proofOfPaymentFile?: File) => {
+    // Create form data to submit with the payment
+    const formData = new FormData(document.querySelector('form') as HTMLFormElement)
+    formData.set('newPaymentAmount', (amount / 100).toString())
+    formData.set('newPaymentDate', format(paidAt, 'yyyy-MM-dd'))
+    if (note) {
+      formData.set('newPaymentNote', note)
     }
-  }, [saveState, router])
+    if (proofOfPaymentFile) {
+      formData.append('proofOfPaymentFile', proofOfPaymentFile)
+    }
+    
+    // Submit the form with the payment data
+    startTransition(() => {
+      saveAction(formData)
+    })
+  }
 
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <Button
-          variant={totalPaidWithPending >= (transaction.total || 0) ? "default" : "outline"}
-          size="sm"
-          className={`min-w-48 transition-all duration-200 ${totalPaidWithPending >= (transaction.total || 0) ? "bg-green-600 hover:bg-green-700 text-white shadow-sm" : "hover:border-gray-400"} ${pendingPaymentAmount > 0 && totalPaidWithPending < (transaction.total || 0) ? "p-6" : ""}`}
-          onClick={() => setSettleModalOpen(true)}
-          aria-label={`Payment status: ${totalPaidWithPending >= (transaction.total || 0) ? "Paid" : "Unpaid"}. Click to manage payments.`}
-          aria-expanded={settleModalOpen}
-          aria-haspopup="dialog"
-          aria-describedby="payment-summary"
-        >
-          {totalPaidWithPending >= (transaction.total || 0) ? (
-            <>
-              <Check className="h-4 w-4 mr-2" />
-              {pendingPaymentAmount > 0 ? "Will be Paid" : "Paid"}
-            </>
-          ) : (
-            <div id="payment-summary" className="flex flex-col items-center">
-              <div className="flex items-center">
-                <Plus className="h-4 w-4 mr-2" />
-                Paid {(totalPaid / 100).toFixed(2)} / {((transaction.total || 0) / 100).toFixed(2)} {transaction.currencyCode}
-              </div>
-              {pendingPaymentAmount > 0 && (
-                <div className="text-xs text-orange-600 mt-1">
-                  +{(pendingPaymentAmount / 100).toFixed(2)} pending
+        {isFullyPaid ? (
+          <Popover open={showPaymentHistory} onOpenChange={setShowPaymentHistory}>
+            <PopoverTrigger asChild>
+              <Button
+                size="sm"
+                variant="default"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm min-w-48"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Paid
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full max-w-md sm:w-96 p-0" align="end">
+              {transaction.payments && transaction.payments.length > 0 && (
+                <div className="p-4 bg-gray-50">
+                  <h4 className="font-medium mb-3">Payment History</h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {transaction.payments.map((payment) => (
+                      <div key={payment.id} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">{format(new Date(payment.paidAt), "MMM d, yyyy")}</span>
+                        <span className="font-medium">{formatCurrency(payment.amount, transaction.currencyCode || 'USD')}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t pt-2 mt-2">
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span>Total Paid:</span>
+                      <span>{formatCurrency(totalPaid, transaction.currencyCode || 'USD')}</span>
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
-          )}
-        </Button>
-
-        {/* Settlement Modal */}
-        <Popover open={settleModalOpen} onOpenChange={setSettleModalOpen}>
-          <PopoverTrigger asChild>
-            <div />
-          </PopoverTrigger>
-          <PopoverContent className="w-full max-w-md sm:w-96 p-0" align="end">
-            {/* Payment History Section */}
-            {transaction.payments && transaction.payments.length > 0 && (
-              <div className="p-4 border-b bg-gray-50">
-                <h4 className="font-medium mb-3">Payment History</h4>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {transaction.payments.map((payment) => (
-                    <div key={payment.id} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">{format(new Date(payment.paidAt), "MMM d, yyyy")}</span>
-                      <span className="font-medium">{(payment.amount / 100).toFixed(2)} {transaction.currencyCode}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t pt-2 mt-2">
-                  <div className="flex justify-between items-center text-sm font-medium">
-                    <span>Total Paid:</span>
-                    <span>{(totalPaid / 100).toFixed(2)} {transaction.currencyCode}</span>
-                  </div>
-                  {(transaction.total || 0) - totalPaid > 0 && (
-                    <div className="flex justify-between items-center text-sm text-orange-600">
-                      <span>Remaining:</span>
-                      <span>{(((transaction.total || 0) - totalPaid) / 100).toFixed(2)} {transaction.currencyCode}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            {(transaction.total || 0) - totalPaid > 0 && (
-              <div className="p-4 space-y-4">
-                <h4 className="font-medium">Add Payment</h4>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="payment-amount">
-                  Amount to Pay
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    id="payment-amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max={(((transaction.total || 0) - totalPaid) / 100)}
-                    value={newPaymentAmount}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
-                        const numValue = parseFloat(value)
-                        const maxAmount = ((transaction.total || 0) - totalPaid) / 100
-                        if (value === "" || (!isNaN(numValue) && numValue <= maxAmount)) {
-                          setNewPaymentAmount(value)
-                        }
-                      }
-                    }}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm flex-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0.00"
-                    aria-describedby="payment-amount-error"
-                  />
-                  <span className="text-sm text-gray-500 whitespace-nowrap">
-                    / {(((transaction.total || 0) - totalPaid) / 100).toFixed(2)} {transaction.currencyCode}
-                  </span>
-                </div>
-                {newPaymentAmount && parseFloat(newPaymentAmount) > (((transaction.total || 0) - totalPaid) / 100) && (
-                  <p id="payment-amount-error" className="text-xs text-red-600 mt-1" role="alert">
-                    Amount cannot exceed remaining balance
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="payment-date">
-                  Payment Date
-                </label>
-                <input
-                  id="payment-date"
-                  type="date"
-                  value={newPaymentDate}
-                  onChange={(e) => setNewPaymentDate(e.target.value)}
-                  max={format(new Date(), "yyyy-MM-dd")}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm w-full"
-                />
-              </div>
-
-              <div className="flex justify-between space-x-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSettleModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => {
-                    // Validation is already handled by disabled state
-                    // The payment data is included in the form through hidden inputs
-                    setSettleModalOpen(false)
-                  }}
-                  disabled={!newPaymentAmount || !newPaymentDate || parseFloat(newPaymentAmount) <= 0 || 
-                           parseFloat(newPaymentAmount) > (((transaction.total || 0) - totalPaid) / 100)}
-                >
-                  Add to Transaction
-                </Button>
-              </div>
-            </div>
-            )}
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <PaymentButtonOnly
+            totalAmount={transaction.total || 0}
+            currencyCode={transaction.currencyCode || 'USD'}
+            totalPaid={totalPaid}
+            onAddPayment={handleAddPayment}
+            className="min-w-48"
+            showProofOfPayment={false}
+          />
+        )}
       </div>
       
       <form action={saveAction} className="space-y-4">
         <input type="hidden" name="transactionId" value={transaction.id} />
-        {newPaymentAmount && newPaymentDate && (
-          <>
-            <input type="hidden" name="newPaymentAmount" value={newPaymentAmount} />
-            <input type="hidden" name="newPaymentDate" value={newPaymentDate} />
-          </>
-        )}
 
       <div className="flex flex-col lg:flex-row gap-4 mb-4">
         <TransactionBasicInfo transaction={transaction} fields={fields} />

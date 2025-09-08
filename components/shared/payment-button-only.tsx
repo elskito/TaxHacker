@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogFooter 
 } from "@/components/ui/dialog"
-import { DollarSign, CheckCircle, Upload, FileText } from "lucide-react"
+import { CheckCircle, Upload, FileText, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/currency"
 
@@ -20,6 +20,7 @@ interface PaymentButtonOnlyProps {
   totalPaid: number
   onAddPayment: (amount: number, paidAt: Date, note?: string, proofOfPaymentFile?: File) => void
   className?: string
+  showProofOfPayment?: boolean
 }
 
 export function PaymentButtonOnly({
@@ -28,6 +29,7 @@ export function PaymentButtonOnly({
   totalPaid,
   onAddPayment,
   className = "",
+  showProofOfPayment = true,
 }: PaymentButtonOnlyProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [newPaymentAmount, setNewPaymentAmount] = useState("")
@@ -90,8 +92,8 @@ export function PaymentButtonOnly({
     return (
       <Button
         size="sm"
-        variant="outline"
-        className={`flex items-center gap-2 bg-green-50 text-green-700 border-green-200 ${className}`}
+        variant="default"
+        className={`flex items-center gap-2 bg-green-600 hover:bg-green-600 text-white shadow-sm disabled:bg-green-600 disabled:text-white disabled:opacity-100 ${className}`}
         disabled
       >
         <CheckCircle className="h-4 w-4" />
@@ -105,14 +107,19 @@ export function PaymentButtonOnly({
     <>
       <Button
         size="sm"
-        className={`flex items-center gap-2 ${className}`}
+        variant="outline"
+        className={`min-w-48 transition-all duration-200 hover:border-gray-400 ${className}`}
         onClick={() => {
           resetForm()
           setIsOpen(true)
         }}
       >
-        <DollarSign className="h-4 w-4" />
-        Mark as Paid
+        <div className="flex flex-col items-center">
+          <div className="flex items-center">
+            <Plus className="h-4 w-4 mr-2" />
+            Paid {formatCurrency(totalPaid, currencyCode)} / {formatCurrency(totalAmount, currencyCode)}
+          </div>
+        </div>
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -147,9 +154,14 @@ export function PaymentButtonOnly({
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm flex-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="0.00"
               />
-              <span className="text-sm text-gray-500 whitespace-nowrap">
+              <button
+                type="button"
+                onClick={() => setNewPaymentAmount((remaining / 100).toString())}
+                className="text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap underline-offset-2 hover:underline transition-colors"
+                title="Click to set amount to remaining balance"
+              >
                 / {formatCurrency(remaining, currencyCode)}
-              </span>
+              </button>
             </div>
           </div>
 
@@ -180,50 +192,52 @@ export function PaymentButtonOnly({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Proof of Payment (optional)
-            </label>
-            <div className="relative">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null
-                  setProofOfPaymentFile(file)
-                }}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                accept="image/*,.pdf"
-              />
-              {proofOfPaymentFile ? (
-                <div className="flex items-center justify-between p-3 border-2 border-green-200 bg-green-50 rounded-lg transition-all w-full">
-                  <div className="flex items-center space-x-3 min-w-0 flex-1 pr-2">
-                    <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <FileText className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-green-800 truncate" title={proofOfPaymentFile.name}>
-                        {proofOfPaymentFile.name}
-                      </p>
-                      <p className="text-xs text-green-600">
-                        {(proofOfPaymentFile.size / 1024).toFixed(1)} KB
-                      </p>
+          {showProofOfPayment && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Proof of Payment (optional)
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null
+                    setProofOfPaymentFile(file)
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  accept="image/*,.pdf"
+                />
+                {proofOfPaymentFile ? (
+                  <div className="flex items-center justify-between p-3 border-2 border-green-200 bg-green-50 rounded-lg transition-all w-full">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1 pr-2">
+                      <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-green-800 truncate" title={proofOfPaymentFile.name}>
+                          {proofOfPaymentFile.name}
+                        </p>
+                        <p className="text-xs text-green-600">
+                          {(proofOfPaymentFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
-                  <div className="text-center">
-                    <div className="w-10 h-10 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Upload className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <div className="flex items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
+                    <div className="text-center">
+                      <div className="w-10 h-10 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">Upload proof of payment</p>
+                      <p className="text-xs text-gray-500">PNG, JPG, or PDF up to 10MB</p>
                     </div>
-                    <p className="text-sm font-medium text-gray-700 mb-1">Upload proof of payment</p>
-                    <p className="text-xs text-gray-500">PNG, JPG, or PDF up to 10MB</p>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           </div>
           
