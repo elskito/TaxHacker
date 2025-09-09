@@ -31,7 +31,7 @@ export default async function TransactionPage({ params }: { params: Promise<{ tr
   const incompleteFields = incompleteTransactionFields(fields, transaction)
 
   return (
-    <div className="flex flex-col lg:flex-row flex-wrap items-stretch justify-center gap-4 max-w-6xl">
+    <div className="flex flex-col lg:flex-row flex-wrap items-stretch justify-center gap-4">
       <div className="w-full lg:w-1/2 flex-1 flex">
         <Card className="w-full flex flex-col flex-wrap justify-center items-start overflow-hidden bg-gradient-to-br from-violet-50/80 via-indigo-50/80 to-white border-violet-200/60">
           {incompleteFields.length > 0 && (
