@@ -36,7 +36,7 @@ export function PaymentHistoryDisplay({
 
 
   return (
-    <div className={`mt-3 p-3 bg-gray-50 rounded-lg min-w-[280px] ${className}`}>
+    <div className={`mt-3 p-3 bg-gray-50 rounded-lg ${className}`}>
       <h5 className="text-sm font-medium text-gray-700 mb-2">Payment History</h5>
       <div className="space-y-2 text-xs">
         {payments.map((payment) => (

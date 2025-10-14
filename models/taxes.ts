@@ -1,5 +1,17 @@
 import { prisma } from "@/lib/db"
 import { getCurrentUser } from "@/lib/auth"
+import { format } from "date-fns"
+
+function createUtcMonthWindow(date: Date) {
+  const year = date.getUTCFullYear()
+  const month = date.getUTCMonth()
+
+  const monthStart = new Date(Date.UTC(year, month, 1))
+  const nextMonthStart = new Date(Date.UTC(year, month + 1, 1))
+  const monthEnd = new Date(nextMonthStart.getTime() - 1)
+
+  return { monthStart, nextMonthStart, monthEnd }
+}
 
 export interface CreateTaxData {
   type: string
@@ -23,6 +35,47 @@ export interface AddTaxPaymentData {
   proofOfPaymentFile?: string
 }
 
+export interface TaxTimelinePayment {
+  id: string
+  amount: number
+  paidAt: string
+  note?: string | null
+  proofOfPaymentFile?: string | null
+}
+
+export interface TaxTimelineTax {
+  id: string
+  type: string
+  amount: number
+  currencyCode: string
+  dueDate: string
+  bankAccountNumber?: string | null
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+  payments: TaxTimelinePayment[]
+}
+
+export interface TaxTimelineMonth {
+  id: string
+  label: string
+  startDate: string
+  endDate: string
+  isCurrent: boolean
+  taxes: TaxTimelineTax[]
+}
+
+export interface TaxTimelineResponse {
+  months: TaxTimelineMonth[]
+  nextCursor: string | null
+}
+
+export interface GetTaxTimelineParams {
+  cursor?: string
+  limit?: number
+  userId?: string
+}
+
 export async function getTaxes(userId?: string) {
   const user = userId || (await getCurrentUser())?.id
   if (!user) throw new Error("User not found")
@@ -39,6 +92,105 @@ export async function getTaxes(userId?: string) {
       { createdAt: "desc" }
     ]
   })
+}
+
+export async function getTaxTimeline({ cursor, limit = 4, userId }: GetTaxTimelineParams = {}): Promise<TaxTimelineResponse> {
+  const user = userId || (await getCurrentUser())?.id
+  if (!user) throw new Error("User not found")
+
+  const sanitizedLimit = Math.max(1, Math.min(limit, 12))
+  const cursorDate = cursor ? createUtcMonthWindow(new Date(cursor)).monthStart : null
+
+  const monthRows = cursorDate
+    ? await prisma.$queryRaw<{ month_start: Date }[]>`
+        SELECT date_trunc('month', "due_date") AS month_start
+        FROM "taxes"
+        WHERE "user_id" = ${user}::uuid AND "due_date" < ${cursorDate}
+        GROUP BY 1
+        ORDER BY month_start DESC
+        LIMIT ${sanitizedLimit}
+      `
+    : await prisma.$queryRaw<{ month_start: Date }[]>`
+        SELECT date_trunc('month', "due_date") AS month_start
+        FROM "taxes"
+        WHERE "user_id" = ${user}::uuid
+        GROUP BY 1
+        ORDER BY month_start DESC
+        LIMIT ${sanitizedLimit}
+      `
+
+  if (monthRows.length === 0) {
+    return { months: [], nextCursor: null }
+  }
+
+  const monthsData: TaxTimelineMonth[] = []
+
+  const currentMonthKey = format(new Date(), "yyyy-MM")
+
+  for (const row of monthRows) {
+    const { monthStart, nextMonthStart, monthEnd } = createUtcMonthWindow(new Date(row.month_start))
+
+    const taxes = await prisma.tax.findMany({
+      where: {
+        userId: user,
+        dueDate: {
+          gte: monthStart,
+          lt: nextMonthStart,
+        },
+      },
+      include: {
+        payments: {
+          select: {
+            id: true,
+            amount: true,
+            paidAt: true,
+            note: true,
+            proofOfPaymentFile: true,
+          },
+          orderBy: { paidAt: "asc" },
+        },
+      },
+      orderBy: [
+        { dueDate: "asc" },
+        { createdAt: "desc" },
+      ],
+    })
+
+    monthsData.push({
+      id: format(monthStart, "yyyy-MM"),
+      label: format(monthStart, "MMMM yyyy"),
+      startDate: monthStart.toISOString(),
+      endDate: monthEnd.toISOString(),
+      isCurrent: format(monthStart, "yyyy-MM") === currentMonthKey,
+      taxes: taxes.map((tax) => ({
+        id: tax.id,
+        type: tax.type,
+        amount: tax.amount,
+        currencyCode: tax.currencyCode,
+        dueDate: tax.dueDate.toISOString(),
+        bankAccountNumber: tax.bankAccountNumber,
+        notes: tax.notes,
+        createdAt: tax.createdAt.toISOString(),
+        updatedAt: tax.updatedAt.toISOString(),
+        payments: tax.payments.map((payment) => ({
+          id: payment.id,
+          amount: payment.amount,
+          paidAt: payment.paidAt.toISOString(),
+          note: payment.note,
+          proofOfPaymentFile: payment.proofOfPaymentFile,
+        })),
+      })),
+    })
+  }
+
+  const nextCursor = monthRows.length === sanitizedLimit
+    ? new Date(monthRows[monthRows.length - 1].month_start).toISOString()
+    : null
+
+  return {
+    months: monthsData,
+    nextCursor,
+  }
 }
 
 export async function getTaxById(id: string, userId?: string) {
