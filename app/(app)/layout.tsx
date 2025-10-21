@@ -54,9 +54,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             unsortedFilesCount={unsortedFilesCount}
             isSelfHosted={config.selfHosted.isEnabled}
           />
-          <SidebarInset className="w-full h-full mt-[60px] md:mt-0 overflow-auto">
-            {isSubscriptionExpired(user) && <SubscriptionExpired />}
-            {children}
+          <SidebarInset className="w-full overflow-auto lg:overflow-visible">
+            <div className="pt-[60px] md:pt-0">
+              {isSubscriptionExpired(user) && <SubscriptionExpired />}
+              {children}
+            </div>
           </SidebarInset>
         </SidebarProvider>
         <Toaster />
