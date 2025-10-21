@@ -21,53 +21,60 @@ async function TaxStatsCards() {
 
   const formatCurrency = (amount: number) => {
     const defaultCurrency = settings.default_currency || "USD"
-    return new Intl.NumberFormat("en-US", {
+    const currencyFormatter = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: defaultCurrency,
+    })
+    const { minimumFractionDigits, maximumFractionDigits } = currencyFormatter.resolvedOptions()
+
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits,
+      maximumFractionDigits,
     }).format(amount / 100)
   }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Total Taxes</CardTitle>
-          <div className="text-2xl font-bold">{stats.totalTaxes}</div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-row items-center justify-between space-y-0">
           <p className="text-xs text-muted-foreground">All tax obligations</p>
+          <div className="text-2xl font-bold">{stats.totalTaxes}</div>
         </CardContent>
       </Card>
-      
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Pending</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-row items-center justify-between space-y-0">
+          <p className="text-xs text-muted-foreground">Awaiting payments</p>
           <div className="text-2xl font-bold text-yellow-600">{stats.pendingTaxes}</div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground">Awaiting payment</p>
         </CardContent>
       </Card>
-      
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-          <div className="text-2xl font-bold text-red-600">{stats.overdueTaxes}</div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-row items-center justify-between space-y-0">
           <p className="text-xs text-muted-foreground">Past due date</p>
+          <div className="text-2xl font-bold text-red-600">{stats.overdueTaxes}</div>
         </CardContent>
       </Card>
-      
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-          <div className="text-2xl font-bold">{formatCurrency(stats.totalAmount)}</div>
         </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground">All obligations</p>
+        <CardContent className="flex flex-row items-center justify-between space-y-0">
+          <p className="text-xs text-muted-foreground">{settings.default_currency || "USD"}</p>
+          <div className="text-xl font-bold">{formatCurrency(stats.totalAmount)}</div>
         </CardContent>
       </Card>
+
     </div>
   )
 }
