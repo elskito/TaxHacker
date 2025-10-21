@@ -91,6 +91,33 @@ export function TaxTimeline({ initialMonths, initialCursor, currencies, defaultC
 
   const goToMonth = useCallback((monthId: string) => {
     setActiveMonthId(monthId)
+
+    if (typeof window === "undefined") {
+      return
+    }
+
+    const isDesktop = window.matchMedia?.("(min-width: 1024px)").matches ?? false
+    if (!isDesktop) {
+      return
+    }
+
+    const selectorId = typeof CSS !== "undefined" && typeof CSS.escape === "function"
+      ? CSS.escape(monthId)
+      : monthId.replace(/"/g, '\\"')
+
+    requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLElement>(`[data-month-id="${selectorId}"]`)
+      if (!target) {
+        return
+      }
+
+      const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+      target.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+        inline: "nearest",
+      })
+    })
   }, [])
 
   const fetchMoreMonths = useCallback(async () => {
