@@ -1,7 +1,5 @@
 import { prisma } from "@/lib/db"
 import { getCurrentUser } from "@/lib/auth"
-import { format } from "date-fns"
-
 function createUtcMonthWindow(date: Date) {
   const year = date.getUTCFullYear()
   const month = date.getUTCMonth()
@@ -11,6 +9,20 @@ function createUtcMonthWindow(date: Date) {
   const monthEnd = new Date(nextMonthStart.getTime() - 1)
 
   return { monthStart, nextMonthStart, monthEnd }
+}
+
+function getUtcMonthKey(date: Date) {
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+  return `${year}-${month}`
+}
+
+function getUtcMonthLabel(date: Date) {
+  return date.toLocaleString("en-US", {
+    timeZone: "UTC",
+    month: "long",
+    year: "numeric",
+  })
 }
 
 export interface CreateTaxData {
@@ -125,7 +137,7 @@ export async function getTaxTimeline({ cursor, limit = 4, userId }: GetTaxTimeli
 
   const monthsData: TaxTimelineMonth[] = []
 
-  const currentMonthKey = format(new Date(), "yyyy-MM")
+  const currentMonthKey = getUtcMonthKey(new Date())
 
   for (const row of monthRows) {
     const { monthStart, nextMonthStart, monthEnd } = createUtcMonthWindow(new Date(row.month_start))
@@ -157,11 +169,11 @@ export async function getTaxTimeline({ cursor, limit = 4, userId }: GetTaxTimeli
     })
 
     monthsData.push({
-      id: format(monthStart, "yyyy-MM"),
-      label: format(monthStart, "MMMM yyyy"),
+      id: getUtcMonthKey(monthStart),
+      label: getUtcMonthLabel(monthStart),
       startDate: monthStart.toISOString(),
       endDate: monthEnd.toISOString(),
-      isCurrent: format(monthStart, "yyyy-MM") === currentMonthKey,
+      isCurrent: getUtcMonthKey(monthStart) === currentMonthKey,
       taxes: taxes.map((tax) => ({
         id: tax.id,
         type: tax.type,
