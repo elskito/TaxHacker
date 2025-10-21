@@ -1,9 +1,11 @@
 import { memo, useMemo } from "react"
+import { Copy } from "lucide-react"
 import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { toast } from "sonner"
 import { PaymentButtonOnly } from "@/components/shared/payment-button-only"
 import { PaymentHistoryDisplay } from "@/components/shared/payment-history-display"
 
@@ -26,6 +28,17 @@ const TaxCardComponent = ({ tax, isActive, onAddPayment, onDelete, onEdit }: Tax
   const hasPayments = tax.payments.length > 0
   const formattedDueDate = format(tax.dueDate, "MMM dd, yyyy")
 
+  const handleCopyAccount = async () => {
+    if (!tax.bankAccountNumber) return
+
+    try {
+      await navigator.clipboard.writeText(tax.bankAccountNumber)
+      toast.success("Account number copied")
+    } catch {
+      toast.error("Failed to copy account number")
+    }
+  }
+
   return (
     <Card
       className={cn(
@@ -46,16 +59,29 @@ const TaxCardComponent = ({ tax, isActive, onAddPayment, onDelete, onEdit }: Tax
               <p className="font-medium text-muted-foreground">Due date</p>
               <p className="whitespace-nowrap text-base font-semibold text-foreground">{formattedDueDate}</p>
             </div>
-            {tax.bankAccountNumber && (
-              <div>
-                <p className="font-medium text-muted-foreground">Account</p>
-                <p className="break-all text-foreground">{tax.bankAccountNumber}</p>
-              </div>
-            )}
           </div>
 
           {tax.notes && (
             <div className="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">{tax.notes}</div>
+          )}
+
+          {tax.bankAccountNumber && (
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium">Account</p>
+              <div className="mt-1 flex items-center gap-2 text-foreground">
+                <p className="break-all">{tax.bankAccountNumber}</p>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={handleCopyAccount}
+                  aria-label="Copy account number"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
