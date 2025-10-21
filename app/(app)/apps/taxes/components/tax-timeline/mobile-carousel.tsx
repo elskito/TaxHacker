@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils"
 import type { AddPaymentHandler, ClientMonth, ClientTax } from "./types"
 import { MonthSection } from "./month-section"
 
+const MOBILE_MONTH_SCROLL_OFFSET = 120
+
 interface MobileTimelineCarouselProps {
   months: ClientMonth[]
   activeMonthId: string | null
@@ -36,6 +38,7 @@ export function MobileTimelineCarousel({
   const observerRef = useRef<IntersectionObserver | null>(null)
   const activeMonthRef = useRef<string | null>(activeMonthId)
   const programmaticScrollRef = useRef(false)
+  const hasInteractedRef = useRef(false)
   const activeIndex = useMemo(() => {
     if (!activeMonthId) return 0
     const index = months.findIndex((month) => month.id === activeMonthId)
@@ -79,6 +82,7 @@ export function MobileTimelineCarousel({
           return
         }
 
+        hasInteractedRef.current = true
         onSelectMonth(monthId)
       },
       {
@@ -104,6 +108,8 @@ export function MobileTimelineCarousel({
       return
     }
 
+    hasInteractedRef.current = true
+
     const targetIndex = Math.max(activeIndex - 1, 0)
     const targetMonth = months[targetIndex]
     if (targetMonth) {
@@ -116,6 +122,8 @@ export function MobileTimelineCarousel({
     if (months.length === 0) {
       return
     }
+
+    hasInteractedRef.current = true
 
     const targetIndex = Math.min(activeIndex + 1, months.length - 1)
     const targetMonth = months[targetIndex]
@@ -164,6 +172,44 @@ export function MobileTimelineCarousel({
     [],
   )
 
+  const scrollMonthContentToTop = useCallback(
+    (monthId: string | null) => {
+      if (typeof window === "undefined" || !monthId) {
+        return
+      }
+
+      const isDesktop = window.matchMedia?.("(min-width: 1024px)").matches ?? false
+      if (isDesktop) {
+        return
+      }
+
+      const monthWrapper = monthRefs.current[monthId]
+      const monthSection = monthWrapper?.querySelector<HTMLElement>("section[data-month-id]") ?? null
+      if (!monthWrapper || !monthSection) {
+        return
+      }
+
+      const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+      const viewportOffsetTop = monthSection.getBoundingClientRect().top
+      const currentScrollY = window.scrollY ?? window.pageYOffset
+      const nextScrollTop = Math.max(0, currentScrollY + viewportOffsetTop - MOBILE_MONTH_SCROLL_OFFSET)
+
+      if (Math.abs(nextScrollTop - currentScrollY) < 2) {
+        return
+      }
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          window.scrollTo({
+            top: nextScrollTop,
+            behavior: prefersReducedMotion ? "auto" : "smooth",
+          })
+        })
+      })
+    },
+    [],
+  )
+
   useEffect(() => {
     const container = containerRef.current
     if (!container) {
@@ -179,21 +225,32 @@ export function MobileTimelineCarousel({
   }, [handleScroll])
 
   useEffect(() => {
-    const behavior = programmaticScrollRef.current ? "smooth" : "auto"
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+    const behavior = programmaticScrollRef.current && !prefersReducedMotion ? "smooth" : "auto"
     scrollToMonth(activeMonthId, behavior)
 
+    const runVerticalScroll = () => {
+      if (!hasInteractedRef.current) {
+        return
+      }
+      scrollMonthContentToTop(activeMonthId)
+    }
+
     if (!programmaticScrollRef.current) {
+      runVerticalScroll()
       return
     }
 
+    const delay = prefersReducedMotion ? 0 : 260
     const timeout = window.setTimeout(() => {
       programmaticScrollRef.current = false
-    }, 240)
+      runVerticalScroll()
+    }, delay)
 
     return () => {
       window.clearTimeout(timeout)
     }
-  }, [activeMonthId, scrollToMonth])
+  }, [activeMonthId, scrollMonthContentToTop, scrollToMonth])
 
   useEffect(() => {
     const container = containerRef.current
@@ -278,6 +335,7 @@ export function MobileTimelineCarousel({
               key={month.id}
               type="button"
               onClick={() => {
+                hasInteractedRef.current = true
                 programmaticScrollRef.current = true
                 onSelectMonth(month.id)
               }}
