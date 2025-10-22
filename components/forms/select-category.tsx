@@ -1,5 +1,6 @@
 "use client"
 
+import { Tag } from "lucide-react"
 import { Category } from "@/prisma/client"
 import { SelectProps } from "@radix-ui/react-select"
 import { useMemo } from "react"
@@ -22,7 +23,16 @@ export const FormSelectCategory = ({
   isRequired?: boolean
 } & SelectProps) => {
   const items = useMemo(
-    () => categories.map((category) => ({ code: category.code, name: category.name, color: category.color })),
+    () =>
+      categories.map((category) => ({
+        code: category.code,
+        name: category.name,
+        icon: category.color ? (
+          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: category.color }} />
+        ) : (
+          <Tag className="h-4 w-4 text-muted-foreground" />
+        ),
+      })),
     [categories]
   )
   return (

@@ -1,4 +1,5 @@
 import { SelectProps } from "@radix-ui/react-select"
+import { ArrowDown, ArrowUp, Clock3, HelpCircle } from "lucide-react"
 import { FormSelect } from "./simple"
 
 export const FormSelectType = ({
@@ -16,10 +17,10 @@ export const FormSelectType = ({
   isRequired?: boolean
 } & SelectProps) => {
   const items = [
-    { code: "expense", name: "Expense", badge: "↓" },
-    { code: "income", name: "Income", badge: "↑" },
-    { code: "pending", name: "Pending", badge: "⏲︎" },
-    { code: "other", name: "Other", badge: "?" },
+    { code: "expense", name: "Expense", icon: <ArrowDown className="h-4 w-4 text-muted-foreground" /> },
+    { code: "income", name: "Income", icon: <ArrowUp className="h-4 w-4 text-muted-foreground" /> },
+    { code: "pending", name: "Pending", icon: <Clock3 className="h-4 w-4 text-muted-foreground" /> },
+    { code: "other", name: "Other", icon: <HelpCircle className="h-4 w-4 text-muted-foreground" /> },
   ]
 
   return (

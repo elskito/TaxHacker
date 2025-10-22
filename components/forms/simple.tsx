@@ -1,7 +1,6 @@
 "use client"
 import Image from "next/image"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,7 +13,15 @@ import { cn } from "@/lib/utils"
 import { SelectProps } from "@radix-ui/react-select"
 import { format } from "date-fns"
 import { CalendarIcon, Upload } from "lucide-react"
-import { InputHTMLAttributes, TextareaHTMLAttributes, useEffect, useRef, useState } from "react"
+import {
+  ChangeEvent,
+  InputHTMLAttributes,
+  ReactNode,
+  TextareaHTMLAttributes,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 
 type FormInputProps = InputHTMLAttributes<HTMLInputElement> & {
   title?: string
@@ -93,7 +100,7 @@ export const FormSelect = ({
   onValueChange,
   ...props
 }: {
-  items: Array<{ code: string; name: string; color?: string; badge?: string; logo?: string }>
+  items: Array<{ code: string; name: string; color?: string; icon?: ReactNode; logo?: string }>
   title?: string
   emptyValue?: string
   placeholder?: string
@@ -125,9 +132,9 @@ export const FormSelect = ({
                 {item.logo && (
                   <Image src={item.logo} alt={item.name} width={20} height={20} className="rounded-full" />
                 )}
-                {item.badge && <Badge className="px-2">{item.badge}</Badge>}
-                {!item.badge && item.color && (
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                {!item.logo && item.icon}
+                {!item.icon && item.color && (
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
                 )}
                 {item.name}
               </div>
@@ -159,7 +166,7 @@ export const FormDate = ({
     setManualInput(newDate ? format(newDate, "yyyy-MM-dd") : "")
   }
 
-  const handleManualInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleManualInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setManualInput(e.target.value)
     setDate(undefined)
     try {
