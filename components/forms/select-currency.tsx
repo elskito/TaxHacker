@@ -1,3 +1,4 @@
+import { Banknote } from "lucide-react"
 import { SelectProps } from "@radix-ui/react-select"
 import { useMemo } from "react"
 import { FormSelect } from "./simple"
@@ -22,8 +23,8 @@ export const FormSelectCurrency = ({
     () =>
       currencies.map((currency) => ({
         code: currency.code,
-        name: `${currency.code}`,
-        badge: currency.name,
+        name: `${currency.code} — ${currency.name}`,
+        icon: <Banknote className="h-4 w-4 text-muted-foreground" />,
       })),
     [currencies]
   )

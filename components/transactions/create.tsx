@@ -57,9 +57,15 @@ export default function TransactionCreateForm({
 
       <FormInput title="Description" name="description" defaultValue={formData.description} />
 
-      <div className="flex flex-row gap-4">
-        <FormInput title="Total" type="number" step="0.01" name="total" defaultValue={formData.total.toFixed(2)} />
+      <FormInput
+        title="Total"
+        type="number"
+        step="0.01"
+        name="total"
+        defaultValue={formData.total.toFixed(2)}
+      />
 
+      <div className="grid gap-4 md:grid-cols-3">
         <FormSelectCurrency
           title="Currency"
           name="currencyCode"
@@ -72,25 +78,24 @@ export default function TransactionCreateForm({
         />
 
         <FormSelectType title="Type" name="type" defaultValue={formData.type} />
+
+        <FormInput
+          title="Issued At"
+          type="date"
+          name="issuedAt"
+          defaultValue={formData.issuedAt}
+        />
       </div>
 
-      {formData.currencyCode !== settings.default_currency ? (
-        <div className="flex flex-row gap-4">
-          <FormInput
-            title={`Converted to ${settings.default_currency}`}
-            type="number"
-            step="0.01"
-            name="convertedTotal"
-            defaultValue={formData.convertedTotal.toFixed(2)}
-          />
-        </div>
-      ) : (
-        <></>
+      {formData.currencyCode !== settings.default_currency && (
+        <FormInput
+          title={`Converted to ${settings.default_currency}`}
+          type="number"
+          step="0.01"
+          name="convertedTotal"
+          defaultValue={formData.convertedTotal.toFixed(2)}
+        />
       )}
-
-      <div className="flex flex-row flex-grow gap-4">
-        <FormInput title="Issued At" type="date" name="issuedAt" defaultValue={formData.issuedAt} />
-      </div>
 
       <div className="flex flex-row gap-4">
         <FormSelectCategory

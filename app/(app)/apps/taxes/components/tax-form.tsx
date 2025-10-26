@@ -10,6 +10,7 @@ import { FormSelectCurrency } from "@/components/forms/select-currency"
 import { taxFormSchema, TaxFormData } from "@/forms/taxes"
 import { toast } from "sonner"
 import { formatDateForInput } from "@/lib/field-utils"
+import { cn } from "@/lib/utils"
 
 interface TaxFormProps {
   initialData?: Partial<TaxFormData & { id?: string }>
@@ -17,9 +18,10 @@ interface TaxFormProps {
   isLoading?: boolean
   currencies: { code: string; name: string }[]
   defaultCurrency?: string
+  submitAlign?: "start" | "end"
 }
 
-export function TaxForm({ initialData, onSubmit, isLoading, currencies, defaultCurrency }: TaxFormProps) {
+export function TaxForm({ initialData, onSubmit, isLoading, currencies, defaultCurrency, submitAlign = "start" }: TaxFormProps) {
   const [formData, setFormData] = useState({
     type: initialData?.type || "",
     amount: initialData?.amount ? (initialData.amount / 100).toString() : "",
@@ -137,7 +139,7 @@ export function TaxForm({ initialData, onSubmit, isLoading, currencies, defaultC
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className={cn("flex gap-2", submitAlign === "end" && "justify-end")}>
         <Button type="submit" disabled={isLoading}>
           {isLoading ? "Saving..." : initialData?.id ? "Update Tax" : "Add Tax"}
         </Button>

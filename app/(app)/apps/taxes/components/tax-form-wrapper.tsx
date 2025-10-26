@@ -10,9 +10,10 @@ interface TaxFormWrapperProps {
   onSuccess?: () => void
   currencies: { code: string; name: string }[]
   defaultCurrency?: string
+  submitAlign?: "start" | "end"
 }
 
-export function TaxFormWrapper({ onSuccess, currencies, defaultCurrency }: TaxFormWrapperProps) {
+export function TaxFormWrapper({ onSuccess, currencies, defaultCurrency, submitAlign }: TaxFormWrapperProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (data: TaxFormData) => {
@@ -34,5 +35,13 @@ export function TaxFormWrapper({ onSuccess, currencies, defaultCurrency }: TaxFo
     }
   }
 
-  return <TaxForm onSubmit={handleSubmit} isLoading={isLoading} currencies={currencies} defaultCurrency={defaultCurrency} />
+  return (
+    <TaxForm
+      onSubmit={handleSubmit}
+      isLoading={isLoading}
+      currencies={currencies}
+      defaultCurrency={defaultCurrency}
+      submitAlign={submitAlign}
+    />
+  )
 }
