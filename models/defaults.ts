@@ -286,6 +286,16 @@ export const DEFAULT_CURRENCIES = [
 
 export const DEFAULT_FIELDS = [
   {
+    code: "invoiceId",
+    name: "Invoice ID",
+    type: "string",
+    llm_prompt: "invoice id / invoice number as shown on the invoice (do not invent)",
+    isVisibleInList: false,
+    isVisibleInAnalysis: true,
+    isRequired: false,
+    isExtra: false,
+  },
+  {
     code: "name",
     name: "Name",
     type: "string",

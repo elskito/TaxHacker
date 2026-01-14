@@ -175,6 +175,7 @@ model Transaction {
   name                  String?
   description           String?
   merchant              String?
+  invoiceId             String?   @map("invoice_id")
   total                 Int?
   currencyCode          String?   @map("currency_code")
   convertedTotal        Int?      @map("converted_total")

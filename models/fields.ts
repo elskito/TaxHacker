@@ -2,18 +2,41 @@ import { prisma } from "@/lib/db"
 import { codeFromName } from "@/lib/utils"
 import { Prisma } from "@/prisma/client"
 import { cache } from "react"
+import { DEFAULT_FIELDS } from "./defaults"
 
 export type FieldData = {
   [key: string]: unknown
 }
 
 export const getFields = cache(async (userId: string) => {
-  return await prisma.field.findMany({
+  const fields = await prisma.field.findMany({
     where: { userId },
     orderBy: {
       createdAt: "asc",
     },
   })
+
+  if (!fields.some((field) => field.code === "invoiceId")) {
+    const invoiceIdField = DEFAULT_FIELDS.find((field) => field.code === "invoiceId")
+    if (invoiceIdField) {
+      try {
+        await prisma.field.create({
+          data: { ...invoiceIdField, userId },
+        })
+      } catch {
+        // Ignore (e.g. created concurrently)
+      }
+
+      return await prisma.field.findMany({
+        where: { userId },
+        orderBy: {
+          createdAt: "asc",
+        },
+      })
+    }
+  }
+
+  return fields
 })
 
 export const createField = async (userId: string, field: FieldData) => {
