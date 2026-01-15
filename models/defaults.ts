@@ -286,6 +286,16 @@ export const DEFAULT_CURRENCIES = [
 
 export const DEFAULT_FIELDS = [
   {
+    code: "invoiceId",
+    name: "Invoice ID",
+    type: "string",
+    llm_prompt: "invoice id / invoice number as shown on the invoice (do not invent)",
+    isVisibleInList: false,
+    isVisibleInAnalysis: true,
+    isRequired: false,
+    isExtra: false,
+  },
+  {
     code: "name",
     name: "Name",
     type: "string",
@@ -506,7 +516,7 @@ export async function createUserDefaults(userId: string) {
   }
 
   // Default fields
-  for (const field of DEFAULT_FIELDS) {
+  for (const [sortOrder, field] of DEFAULT_FIELDS.entries()) {
     await prisma.field.upsert({
       where: { userId_code: { code: field.code, userId } },
       update: {
@@ -518,7 +528,7 @@ export async function createUserDefaults(userId: string) {
         isRequired: field.isRequired,
         isExtra: field.isExtra,
       },
-      create: { ...field, userId },
+      create: { ...field, userId, sortOrder },
     })
   }
 

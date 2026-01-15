@@ -65,6 +65,7 @@ export async function saveInvoiceAsTransactionAction(
   try {
     const user = await getCurrentUser()
     const settings = await getSettings(user.id)
+    const invoiceId = formData.invoiceNumber.trim() || null
 
     // Calculate total amount from items
     const subtotal = formData.items.reduce((sum, item) => sum + item.subtotal, 0)
@@ -92,8 +93,9 @@ export async function saveInvoiceAsTransactionAction(
     
     // Prepare transaction data with VAT information
     const transactionData: any = {
-      name: `Invoice #${formData.invoiceNumber || "unknown"}`,
+      name: `Invoice #${invoiceId || "unknown"}`,
       merchant: `${formData.billTo.split("\n")[0]}`,
+      invoiceId,
       total: totalAmount * 100,
       currencyCode: formData.currency,
       issuedAt: new Date(formData.date),

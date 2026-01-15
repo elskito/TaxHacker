@@ -1,4 +1,4 @@
-import { addFieldAction, deleteFieldAction, editFieldAction } from "@/app/(app)/settings/actions"
+import { addFieldAction, deleteFieldAction, editFieldAction, reorderFieldsAction } from "@/app/(app)/settings/actions"
 import { FieldsTable } from "@/components/settings/fields"
 import { getCurrentUser } from "@/lib/auth"
 import { getFields } from "@/models/fields"
@@ -34,6 +34,10 @@ export default async function FieldsSettingsPage() {
         onEdit={async (code, data) => {
           "use server"
           return await editFieldAction(user.id, code, data as Prisma.FieldUpdateInput)
+        }}
+        onReorder={async (orderedCodes) => {
+          "use server"
+          return await reorderFieldsAction(user.id, orderedCodes)
         }}
       />
     </div>

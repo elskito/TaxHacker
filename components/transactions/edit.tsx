@@ -146,51 +146,64 @@ export default function TransactionEditForm({
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        {isFullyPaid ? (
-          <Popover open={showPaymentHistory} onOpenChange={setShowPaymentHistory}>
-            <PopoverTrigger asChild>
-              <Button
-                size="sm"
-                variant="default"
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm min-w-48"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Paid
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full max-w-md sm:w-96 p-0" align="end">
-              {transaction.payments && transaction.payments.length > 0 && (
-                <div className="p-4 bg-gray-50">
-                  <h4 className="font-medium mb-3">Payment History</h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {transaction.payments.map((payment) => (
-                      <div key={payment.id} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">{format(new Date(payment.paidAt), "MMM d, yyyy")}</span>
-                        <span className="font-medium">{formatCurrency(payment.amount, transaction.currencyCode || 'USD')}</span>
+      <div className="flex items-start justify-between mb-4 gap-4">
+        <div className="min-w-0">
+          {transaction.invoiceId && (
+            <div className="text-sm">
+              <div className="text-xs text-muted-foreground">Invoice ID</div>
+              <div className="font-mono text-sm text-slate-900 truncate">{transaction.invoiceId}</div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end">
+          {isFullyPaid ? (
+            <Popover open={showPaymentHistory} onOpenChange={setShowPaymentHistory}>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm min-w-48"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Paid
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full max-w-md sm:w-96 p-0" align="end">
+                {transaction.payments && transaction.payments.length > 0 && (
+                  <div className="p-4 bg-gray-50">
+                    <h4 className="font-medium mb-3">Payment History</h4>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {transaction.payments.map((payment) => (
+                        <div key={payment.id} className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">{format(new Date(payment.paidAt), "MMM d, yyyy")}</span>
+                          <span className="font-medium">
+                            {formatCurrency(payment.amount, transaction.currencyCode || 'USD')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between items-center text-sm font-medium">
+                        <span>Total Paid:</span>
+                        <span>{formatCurrency(totalPaid, transaction.currencyCode || 'USD')}</span>
                       </div>
-                    ))}
-                  </div>
-                  <div className="border-t pt-2 mt-2">
-                    <div className="flex justify-between items-center text-sm font-medium">
-                      <span>Total Paid:</span>
-                      <span>{formatCurrency(totalPaid, transaction.currencyCode || 'USD')}</span>
                     </div>
                   </div>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
-        ) : (
-          <PaymentButtonOnly
-            totalAmount={transaction.total || 0}
-            currencyCode={transaction.currencyCode || 'USD'}
-            totalPaid={totalPaid}
-            onAddPayment={handleAddPayment}
-            className="min-w-48"
-            showProofOfPayment={false}
-          />
-        )}
+                )}
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <PaymentButtonOnly
+              totalAmount={transaction.total || 0}
+              currencyCode={transaction.currencyCode || 'USD'}
+              totalPaid={totalPaid}
+              onAddPayment={handleAddPayment}
+              className="min-w-48"
+              showProofOfPayment={false}
+            />
+          )}
+        </div>
       </div>
       
       <form action={saveAction} className="space-y-4">

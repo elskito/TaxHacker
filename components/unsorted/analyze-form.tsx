@@ -57,6 +57,7 @@ export default function AnalyzeForm({
   const extraFields = useMemo(() => fields.filter((field) => field.isExtra), [fields])
   const initialFormState = useMemo(() => {
     const baseState = {
+      invoiceId: "",
       name: file.filename,
       merchant: "",
       description: "",
@@ -215,6 +216,16 @@ export default function AnalyzeForm({
 
       <form className="space-y-4" action={saveAsTransaction}>
         <input type="hidden" name="fileId" value={file.id} />
+        {fieldMap.invoiceId && (
+          <FormInput
+            title={fieldMap.invoiceId.name}
+            name="invoiceId"
+            value={formData.invoiceId}
+            onChange={(e) => setFormData((prev) => ({ ...prev, invoiceId: e.target.value }))}
+            hideIfEmpty={!fieldMap.invoiceId.isVisibleInAnalysis}
+            required={fieldMap.invoiceId.isRequired}
+          />
+        )}
         <FormInput
           title={fieldMap.name.name}
           name="name"

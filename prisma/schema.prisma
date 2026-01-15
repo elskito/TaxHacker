@@ -143,6 +143,7 @@ model Field {
   llm_prompt          String?
   options             Json?
   createdAt           DateTime @default(now()) @map("created_at")
+  sortOrder           Int      @default(0) @map("sort_order")
   isVisibleInList     Boolean  @default(false) @map("is_visible_in_list")
   isVisibleInAnalysis Boolean  @default(false) @map("is_visible_in_analysis")
   isRequired          Boolean  @default(false) @map("is_required")
@@ -175,6 +176,7 @@ model Transaction {
   name                  String?
   description           String?
   merchant              String?
+  invoiceId             String?   @map("invoice_id")
   total                 Int?
   currencyCode          String?   @map("currency_code")
   convertedTotal        Int?      @map("converted_total")

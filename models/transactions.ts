@@ -8,6 +8,7 @@ export type TransactionData = {
   name?: string | null
   description?: string | null
   merchant?: string | null
+  invoiceId?: string | null
   total?: number | null
   currencyCode?: string | null
   convertedTotal?: number | null
@@ -144,11 +145,14 @@ export const getTransactionsByFileId = cache(async (fileId: string, userId: stri
 })
 
 export const createTransaction = async (userId: string, data: TransactionData): Promise<Transaction> => {
-  const { standard, extra } = await splitTransactionDataExtraFields(data, userId)
+  const { invoiceId, ...rest } = data
+  const { standard, extra } = await splitTransactionDataExtraFields(rest, userId)
+  const normalizedInvoiceId = typeof invoiceId === "string" ? invoiceId.trim() : invoiceId
 
   return await prisma.transaction.create({
     data: {
       ...standard,
+      invoiceId: normalizedInvoiceId ? normalizedInvoiceId : null,
       extra: extra,
       items: data.items as Prisma.InputJsonValue,
       userId,
@@ -157,12 +161,15 @@ export const createTransaction = async (userId: string, data: TransactionData): 
 }
 
 export const updateTransaction = async (id: string, userId: string, data: TransactionData): Promise<Transaction> => {
-  const { standard, extra } = await splitTransactionDataExtraFields(data, userId)
+  const { invoiceId, ...rest } = data
+  const { standard, extra } = await splitTransactionDataExtraFields(rest, userId)
+  const normalizedInvoiceId = typeof invoiceId === "string" ? invoiceId.trim() : invoiceId
 
   return await prisma.transaction.update({
     where: { id, userId },
     data: {
       ...standard,
+      ...(normalizedInvoiceId !== undefined ? { invoiceId: normalizedInvoiceId ? normalizedInvoiceId : null } : {}),
       extra: extra,
       items: data.items ? (data.items as Prisma.InputJsonValue) : [],
     },
