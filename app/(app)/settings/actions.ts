@@ -14,7 +14,7 @@ import { uploadStaticImage } from "@/lib/uploads"
 import { codeFromName, randomHexColor } from "@/lib/utils"
 import { createCategory, deleteCategory, updateCategory } from "@/models/categories"
 import { createCurrency, deleteCurrency, updateCurrency } from "@/models/currencies"
-import { createField, deleteField, updateField } from "@/models/fields"
+import { createField, deleteField, reorderFields, updateField } from "@/models/fields"
 import { createProject, deleteProject, updateProject } from "@/models/projects"
 import { SettingsMap, updateSettings } from "@/models/settings"
 import { updateUser } from "@/models/users"
@@ -281,5 +281,17 @@ export async function deleteFieldAction(userId: string, code: string) {
     return { success: false, error: "Failed to delete field" + error }
   }
   revalidatePath("/settings/fields")
+  return { success: true }
+}
+
+export async function reorderFieldsAction(userId: string, orderedCodes: string[]) {
+  try {
+    await reorderFields(userId, orderedCodes)
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+
+  revalidatePath("/settings/fields")
+  revalidatePath("/transactions")
   return { success: true }
 }

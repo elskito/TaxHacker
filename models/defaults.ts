@@ -516,7 +516,7 @@ export async function createUserDefaults(userId: string) {
   }
 
   // Default fields
-  for (const field of DEFAULT_FIELDS) {
+  for (const [sortOrder, field] of DEFAULT_FIELDS.entries()) {
     await prisma.field.upsert({
       where: { userId_code: { code: field.code, userId } },
       update: {
@@ -528,7 +528,7 @@ export async function createUserDefaults(userId: string) {
         isRequired: field.isRequired,
         isExtra: field.isExtra,
       },
-      create: { ...field, userId },
+      create: { ...field, userId, sortOrder },
     })
   }
 
