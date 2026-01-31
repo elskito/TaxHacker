@@ -23,6 +23,7 @@ import {
 } from "@/models/transactions"
 import { updateUser } from "@/models/users"
 import { Transaction } from "@/prisma/client"
+import { prewarmFilePreview } from "@/lib/previews/generate"
 import { randomUUID } from "crypto"
 import { mkdir, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
@@ -214,6 +215,8 @@ export async function uploadTransactionFilesAction(formData: FormData): Promise<
           },
         })
 
+        await prewarmFilePreview(user, fullFilePath, file.type)
+
         return fileRecord
       })
     )
@@ -263,4 +266,3 @@ export async function updateFieldVisibilityAction(fieldCode: string, isVisible: 
     return { success: false, error: "Failed to update field visibility" }
   }
 }
-

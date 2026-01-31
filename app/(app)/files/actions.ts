@@ -9,6 +9,7 @@ import {
   safePathJoin,
   unsortedFilePath,
 } from "@/lib/files"
+import { prewarmFilePreview } from "@/lib/previews/generate"
 import { createFile } from "@/models/files"
 import { updateUser } from "@/models/users"
 import { randomUUID } from "crypto"
@@ -65,6 +66,8 @@ export async function uploadFilesAction(formData: FormData): Promise<ActionState
           lastModified: file.lastModified,
         },
       })
+
+      await prewarmFilePreview(user, fullFilePath, file.type)
 
       return fileRecord
     })
