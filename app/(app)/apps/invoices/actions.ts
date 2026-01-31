@@ -15,6 +15,7 @@ import { Transaction, User } from "@/prisma/client"
 import { renderToBuffer } from "@react-pdf/renderer"
 import { randomUUID } from "crypto"
 import { getCurrencyRate } from "@/lib/currency"
+import { prewarmFilePreview } from "@/lib/previews/generate"
 import { mkdir, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import path from "path"
@@ -175,6 +176,8 @@ export async function saveInvoiceAsTransactionAction(
         lastModified: Date.now(),
       },
     })
+
+    await prewarmFilePreview(user, fullFilePath, "application/pdf")
 
     // Update transaction with the file ID
     await updateTransactionFiles(transaction.id, user.id, [fileRecord.id])

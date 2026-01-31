@@ -14,6 +14,7 @@ import {
   safePathJoin,
   unsortedFilePath,
 } from "@/lib/files"
+import { prewarmFilePreview } from "@/lib/previews/generate"
 import { DEFAULT_PROMPT_ANALYSE_NEW_FILE } from "@/models/defaults"
 import { createFile, deleteFile, getFileById, updateFile } from "@/models/files"
 import { createTransaction, TransactionData, updateTransactionFiles } from "@/models/transactions"
@@ -115,6 +116,8 @@ export async function saveFileAsTransactionAction(
       path: newRelativeFilePath,
       isReviewed: true,
     })
+
+    await prewarmFilePreview(user, newFullFilePath, file.mimetype)
 
     await updateTransactionFiles(transaction.id, user.id, [file.id])
 

@@ -27,3 +27,11 @@ export async function generateFilePreviews(
     return { contentType: mimetype, previews: [filePath] }
   }
 }
+
+export async function prewarmFilePreview(user: User, filePath: string, mimetype: string) {
+  try {
+    await generateFilePreviews(user, filePath, mimetype, { variant: "thumb", page: 1 })
+  } catch (error) {
+    console.warn("Failed to generate preview:", error)
+  }
+}
