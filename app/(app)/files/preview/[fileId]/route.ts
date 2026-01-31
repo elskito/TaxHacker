@@ -17,6 +17,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
 
   const url = new URL(request.url)
   const page = parseInt(url.searchParams.get("page") || "1", 10)
+  const variant = url.searchParams.get("variant") === "full" ? "full" : "thumb"
 
   try {
     // Find file in database
@@ -34,11 +35,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
     }
 
     // Generate previews
-    const { contentType, previews } = await generateFilePreviews(user, fullFilePath, file.mimetype)
-    if (page > previews.length) {
-      return new NextResponse("Page not found", { status: 404 })
+    const { contentType, previews } = await generateFilePreviews(user, fullFilePath, file.mimetype, { page, variant })
+    const previewPath = previews[0]
+    if (!previewPath) {
+      return new NextResponse("Preview not found", { status: 404 })
     }
-    const previewPath = previews[page - 1] || fullFilePath
 
     // Read file
     const fileBuffer = await fs.readFile(previewPath)

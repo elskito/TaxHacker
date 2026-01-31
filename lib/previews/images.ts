@@ -7,19 +7,28 @@ import path from "path"
 import sharp from "sharp"
 import config from "../config"
 
+type ResizeVariant = "thumb" | "full"
+
+type ResizeImageOptions = {
+  variant?: ResizeVariant
+}
+
 export async function resizeImage(
   user: User,
   origFilePath: string,
-  maxWidth: number = config.upload.images.maxWidth,
-  maxHeight: number = config.upload.images.maxHeight,
-  quality: number = config.upload.images.quality
+  options: ResizeImageOptions = {}
 ): Promise<{ contentType: string; resizedPath: string }> {
   try {
+    const variant: ResizeVariant = options.variant ?? "thumb"
+    const maxWidth = variant === "full" ? 4096 : config.upload.images.maxWidth
+    const maxHeight = variant === "full" ? 4096 : config.upload.images.maxHeight
+    const quality = variant === "full" ? 95 : config.upload.images.quality
+
     const userPreviewsDirectory = getUserPreviewsDirectory(user)
     await fs.mkdir(userPreviewsDirectory, { recursive: true })
 
     const basename = path.basename(origFilePath, path.extname(origFilePath))
-    const outputPath = safePathJoin(userPreviewsDirectory, `${basename}.webp`)
+    const outputPath = safePathJoin(userPreviewsDirectory, `${basename}.w${maxWidth}.h${maxHeight}.q${quality}.webp`)
 
     if (await fileExists(outputPath)) {
       const metadata = await sharp(outputPath).metadata()
