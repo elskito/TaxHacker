@@ -11,7 +11,8 @@ import { getFields } from "@/models/fields"
 import { getFilesByTransactionId } from "@/models/files"
 import { getProjects } from "@/models/projects"
 import { getSettings } from "@/models/settings"
-import { getTransactionById, getTransactions, TransactionFilters } from "@/models/transactions"
+import { getTransactionById, getTransactionNavWindow, getTransactions, TransactionFilters } from "@/models/transactions"
+import { Transaction } from "@/prisma/client"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
@@ -28,21 +29,34 @@ export default async function TransactionPage({
 }) {
   const { transactionId } = await params
   const { page, ...filters } = await searchParams
-  const rawPage = Number(getFilterValue(page) ?? 1)
-  const currentPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1
+  const pageParam = getFilterValue(page)
+  const rawPage = pageParam ? Number(pageParam) : undefined
+  const requestedPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : undefined
   const user = await getCurrentUser()
   const transaction = await getTransactionById(transactionId, user.id)
   if (!transaction) {
     notFound()
   }
 
-  const baseOffset = (currentPage - 1) * TRANSACTIONS_PER_PAGE
-  const navOffset = Math.max(0, baseOffset - 1)
-  const navLimit = TRANSACTIONS_PER_PAGE + (baseOffset > 0 ? 1 : 0) + 1
-  const { transactions: navTransactions } = await getTransactions(user.id, filters, {
-    limit: navLimit,
-    offset: navOffset,
-  })
+  let navOffset = 0
+  let navLimit = TRANSACTIONS_PER_PAGE + 1
+  let navTransactions: Transaction[] = []
+  let usePageWindow = false
+  if (requestedPage) {
+    const baseOffset = (requestedPage - 1) * TRANSACTIONS_PER_PAGE
+    navOffset = Math.max(0, baseOffset - 1)
+    navLimit = TRANSACTIONS_PER_PAGE + (baseOffset > 0 ? 1 : 0) + 1
+    const { transactions: pageTransactions } = await getTransactions(user.id, filters, {
+      limit: navLimit,
+      offset: navOffset,
+    })
+    navTransactions = pageTransactions
+    usePageWindow = navTransactions.some((navTransaction) => navTransaction.id === transaction.id)
+  }
+
+  if (!usePageWindow) {
+    navTransactions = await getTransactionNavWindow(user.id, transaction.id, filters, TRANSACTIONS_PER_PAGE)
+  }
   const switcherTransactions = navTransactions.map((navTransaction, index) => ({
     id: navTransaction.id,
     name: navTransaction.name,
@@ -51,7 +65,7 @@ export default async function TransactionPage({
     total: navTransaction.total,
     currencyCode: navTransaction.currencyCode,
     type: navTransaction.type,
-    page: Math.floor((navOffset + index) / TRANSACTIONS_PER_PAGE) + 1,
+    page: usePageWindow ? Math.floor((navOffset + index) / TRANSACTIONS_PER_PAGE) + 1 : undefined,
   }))
 
   const files = await getFilesByTransactionId(transactionId, user.id)
@@ -67,6 +81,7 @@ export default async function TransactionPage({
       <TransactionSwitcher
         currentId={transaction.id}
         transactions={switcherTransactions}
+        stripPageParam={!usePageWindow}
       />
       <div className="flex flex-col lg:flex-row flex-wrap items-stretch justify-center gap-4">
         <div className="w-full lg:w-1/2 flex-1 flex">

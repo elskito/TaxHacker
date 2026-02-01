@@ -61,9 +61,11 @@ const isEditableTarget = (target: EventTarget | null) => {
 export default function TransactionSwitcher({
   currentId,
   transactions,
+  stripPageParam = false,
 }: {
   currentId: string
   transactions: TransactionSwitchItem[]
+  stripPageParam?: boolean
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -95,7 +97,9 @@ export default function TransactionSwitcher({
   const navigateTo = useCallback(
     (id: string, page?: number) => {
       const params = new URLSearchParams(searchParams.toString())
-      if (typeof page === "number") {
+      if (stripPageParam) {
+        params.delete("page")
+      } else if (typeof page === "number") {
         if (page > 1) {
           params.set("page", String(page))
         } else {
@@ -105,7 +109,7 @@ export default function TransactionSwitcher({
       const href = params.toString() ? `/transactions/${id}?${params.toString()}` : `/transactions/${id}`
       router.push(href)
     },
-    [router, searchParams]
+    [router, searchParams, stripPageParam]
   )
 
   useEffect(() => {

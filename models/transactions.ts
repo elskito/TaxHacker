@@ -43,6 +43,70 @@ export type TransactionPagination = {
   offset: number
 }
 
+const buildTransactionWhere = (userId: string, filters?: TransactionFilters): Prisma.TransactionWhereInput => {
+  const where: Prisma.TransactionWhereInput = { userId }
+
+  if (filters) {
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: "insensitive" } },
+        { merchant: { contains: filters.search, mode: "insensitive" } },
+        { description: { contains: filters.search, mode: "insensitive" } },
+        { note: { contains: filters.search, mode: "insensitive" } },
+        { text: { contains: filters.search, mode: "insensitive" } },
+      ]
+    }
+
+    if (filters.dateFrom || filters.dateTo) {
+      where.issuedAt = {
+        gte: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
+        lte: filters.dateTo ? new Date(filters.dateTo) : undefined,
+      }
+    }
+
+    if (filters.categoryCode) {
+      where.categoryCode = filters.categoryCode
+    }
+
+    if (filters.projectCode) {
+      where.projectCode = filters.projectCode
+    }
+
+    if (filters.type) {
+      where.type = filters.type
+    }
+  }
+
+  return where
+}
+
+const resolveTransactionOrdering = (filters?: TransactionFilters) => {
+  if (filters?.ordering) {
+    const isDesc = filters.ordering.startsWith("-")
+    const field = isDesc ? filters.ordering.slice(1) : filters.ordering
+    return { field, direction: isDesc ? "desc" : "asc" } as const
+  }
+  return { field: "issuedAt", direction: "desc" } as const
+}
+
+const buildTransactionOrderBy = (
+  filters?: TransactionFilters
+): Prisma.TransactionOrderByWithRelationInput[] => {
+  const { field, direction } = resolveTransactionOrdering(filters)
+  const primary = { [field]: direction } as Prisma.TransactionOrderByWithRelationInput
+  const tiebreaker = { id: direction } as Prisma.TransactionOrderByWithRelationInput
+  return [primary, tiebreaker]
+}
+
+const reverseOrderBy = (
+  orderBy: Prisma.TransactionOrderByWithRelationInput[]
+): Prisma.TransactionOrderByWithRelationInput[] =>
+  orderBy.map((order) => {
+    const [key, value] = Object.entries(order)[0]
+    const direction = value === "asc" ? "desc" : "asc"
+    return { [key]: direction } as Prisma.TransactionOrderByWithRelationInput
+  })
+
 export const getTransactions = cache(
   async (
     userId: string,
@@ -52,45 +116,8 @@ export const getTransactions = cache(
     transactions: Transaction[]
     total: number
   }> => {
-    const where: Prisma.TransactionWhereInput = { userId }
-    let orderBy: Prisma.TransactionOrderByWithRelationInput = { issuedAt: "desc" }
-
-    if (filters) {
-      if (filters.search) {
-        where.OR = [
-          { name: { contains: filters.search, mode: "insensitive" } },
-          { merchant: { contains: filters.search, mode: "insensitive" } },
-          { description: { contains: filters.search, mode: "insensitive" } },
-          { note: { contains: filters.search, mode: "insensitive" } },
-          { text: { contains: filters.search, mode: "insensitive" } },
-        ]
-      }
-
-      if (filters.dateFrom || filters.dateTo) {
-        where.issuedAt = {
-          gte: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
-          lte: filters.dateTo ? new Date(filters.dateTo) : undefined,
-        }
-      }
-
-      if (filters.categoryCode) {
-        where.categoryCode = filters.categoryCode
-      }
-
-      if (filters.projectCode) {
-        where.projectCode = filters.projectCode
-      }
-
-      if (filters.type) {
-        where.type = filters.type
-      }
-
-      if (filters.ordering) {
-        const isDesc = filters.ordering.startsWith("-")
-        const field = isDesc ? filters.ordering.slice(1) : filters.ordering
-        orderBy = { [field]: isDesc ? "desc" : "asc" }
-      }
-    }
+    const where = buildTransactionWhere(userId, filters)
+    const orderBy = buildTransactionOrderBy(filters)
 
     if (pagination) {
       const total = await prisma.transaction.count({ where })
@@ -122,6 +149,49 @@ export const getTransactions = cache(
       })
       return { transactions, total: transactions.length }
     }
+  }
+)
+
+export const getTransactionNavWindow = cache(
+  async (
+    userId: string,
+    transactionId: string,
+    filters?: TransactionFilters,
+    windowSize = 500
+  ): Promise<Transaction[]> => {
+    const where = buildTransactionWhere(userId, filters)
+    const orderBy = buildTransactionOrderBy(filters)
+    const current = await prisma.transaction.findFirst({
+      where: { ...where, id: transactionId },
+    })
+
+    if (!current) {
+      const fallback = await prisma.transaction.findUnique({ where: { id: transactionId, userId } })
+      return fallback ? [fallback] : []
+    }
+
+    const size = Math.max(1, windowSize)
+    const prevCount = Math.floor((size - 1) / 2)
+    const nextCount = size - prevCount - 1
+
+    const [prev, next] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        orderBy: reverseOrderBy(orderBy),
+        cursor: { id: transactionId },
+        skip: 1,
+        take: prevCount,
+      }),
+      prisma.transaction.findMany({
+        where,
+        orderBy,
+        cursor: { id: transactionId },
+        skip: 1,
+        take: nextCount,
+      }),
+    ])
+
+    return [...prev.reverse(), current, ...next]
   }
 )
 
