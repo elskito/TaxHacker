@@ -36,11 +36,14 @@ export default async function TransactionPage({
     notFound()
   }
 
+  const baseOffset = (currentPage - 1) * TRANSACTIONS_PER_PAGE
+  const navOffset = Math.max(0, baseOffset - 1)
+  const navLimit = TRANSACTIONS_PER_PAGE + (baseOffset > 0 ? 1 : 0) + 1
   const { transactions: navTransactions } = await getTransactions(user.id, filters, {
-    limit: TRANSACTIONS_PER_PAGE,
-    offset: (currentPage - 1) * TRANSACTIONS_PER_PAGE,
+    limit: navLimit,
+    offset: navOffset,
   })
-  const switcherTransactions = navTransactions.map((navTransaction) => ({
+  const switcherTransactions = navTransactions.map((navTransaction, index) => ({
     id: navTransaction.id,
     name: navTransaction.name,
     merchant: navTransaction.merchant,
@@ -48,6 +51,7 @@ export default async function TransactionPage({
     total: navTransaction.total,
     currencyCode: navTransaction.currencyCode,
     type: navTransaction.type,
+    page: Math.floor((navOffset + index) / TRANSACTIONS_PER_PAGE) + 1,
   }))
 
   const files = await getFilesByTransactionId(transactionId, user.id)

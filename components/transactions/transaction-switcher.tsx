@@ -18,6 +18,7 @@ export type TransactionSwitchItem = {
   total: number | null
   currencyCode: string | null
   type: string | null
+  page?: number
 }
 
 const TYPE_STYLES: Record<string, string> = {
@@ -92,9 +93,16 @@ export default function TransactionSwitcher({
   }, [transactions, query])
 
   const navigateTo = useCallback(
-    (id: string) => {
-      const params = searchParams.toString()
-      const href = params ? `/transactions/${id}?${params}` : `/transactions/${id}`
+    (id: string, page?: number) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (typeof page === "number") {
+        if (page > 1) {
+          params.set("page", String(page))
+        } else {
+          params.delete("page")
+        }
+      }
+      const href = params.toString() ? `/transactions/${id}?${params.toString()}` : `/transactions/${id}`
       router.push(href)
     },
     [router, searchParams]
@@ -108,14 +116,14 @@ export default function TransactionSwitcher({
       if (event.key === "ArrowLeft") {
         if (prevTransaction) {
           event.preventDefault()
-          navigateTo(prevTransaction.id)
+          navigateTo(prevTransaction.id, prevTransaction.page)
         }
       }
 
       if (event.key === "ArrowRight") {
         if (nextTransaction) {
           event.preventDefault()
-          navigateTo(nextTransaction.id)
+          navigateTo(nextTransaction.id, nextTransaction.page)
         }
       }
     }
@@ -157,7 +165,7 @@ export default function TransactionSwitcher({
                     key={transaction.id}
                     type="button"
                     onClick={() => {
-                      navigateTo(transaction.id)
+                      navigateTo(transaction.id, transaction.page)
                       setOpen(false)
                     }}
                     className={cn(
@@ -193,7 +201,7 @@ export default function TransactionSwitcher({
                   variant="outline"
                   size="icon"
                   className="h-9 w-9 border-slate-200 bg-white"
-                  onClick={() => prevTransaction && navigateTo(prevTransaction.id)}
+                  onClick={() => prevTransaction && navigateTo(prevTransaction.id, prevTransaction.page)}
                   disabled={!prevTransaction}
                   aria-label="Previous transaction"
                 >
@@ -208,7 +216,7 @@ export default function TransactionSwitcher({
                   variant="outline"
                   size="icon"
                   className="h-9 w-9 border-slate-200 bg-white"
-                  onClick={() => nextTransaction && navigateTo(nextTransaction.id)}
+                  onClick={() => nextTransaction && navigateTo(nextTransaction.id, nextTransaction.page)}
                   disabled={!nextTransaction}
                   aria-label="Next transaction"
                 >
