@@ -48,7 +48,13 @@ const getTransactionTotalLabel = (transaction: TransactionSwitchItem) => {
 const isEditableTarget = (target: EventTarget | null) => {
   if (!target || !(target instanceof HTMLElement)) return false
   const tag = target.tagName.toLowerCase()
-  return tag === "input" || tag === "textarea" || target.isContentEditable
+  if (tag === "input" || tag === "textarea" || tag === "select") return true
+  if (target.isContentEditable) return true
+  return Boolean(
+    target.closest(
+      '[role="combobox"], [role="listbox"], [aria-haspopup="listbox"], [data-radix-select-trigger]'
+    )
+  )
 }
 
 export default function TransactionSwitcher({
@@ -99,14 +105,14 @@ export default function TransactionSwitcher({
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
       if (isEditableTarget(event.target)) return
 
-      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "k") {
+      if (event.key === "ArrowLeft") {
         if (prevTransaction) {
           event.preventDefault()
           navigateTo(prevTransaction.id)
         }
       }
 
-      if (event.key === "ArrowRight" || event.key.toLowerCase() === "j") {
+      if (event.key === "ArrowRight") {
         if (nextTransaction) {
           event.preventDefault()
           navigateTo(nextTransaction.id)
@@ -194,7 +200,7 @@ export default function TransactionSwitcher({
                   <ArrowLeft />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Previous (K or Left)</TooltipContent>
+              <TooltipContent>Previous (Left)</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -209,7 +215,7 @@ export default function TransactionSwitcher({
                   <ArrowRight />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Next (J or Right)</TooltipContent>
+              <TooltipContent>Next (Right)</TooltipContent>
             </Tooltip>
           </div>
         </div>
