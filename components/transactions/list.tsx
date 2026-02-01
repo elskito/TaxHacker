@@ -265,7 +265,8 @@ export function TransactionList({ transactions, fields = [] }: { transactions: T
   }
 
   const handleRowClick = (id: string) => {
-    router.push(`/transactions/${id}`)
+    const params = searchParams.toString()
+    router.push(params ? `/transactions/${id}?${params}` : `/transactions/${id}`)
   }
 
   const handleSort = (field: string) => {
