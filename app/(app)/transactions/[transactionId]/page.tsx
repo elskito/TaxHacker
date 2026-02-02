@@ -31,8 +31,7 @@ export default async function TransactionPage({
   const { page, ...filters } = await searchParams
   const pageParam = getFilterValue(page)
   const rawPage = pageParam ? Number(pageParam) : undefined
-  const requestedPage =
-    typeof rawPage === "number" && Number.isFinite(rawPage) && rawPage > 0 ? rawPage : undefined
+  const requestedPage = typeof rawPage === "number" && Number.isFinite(rawPage) && rawPage > 0 ? rawPage : undefined
   const user = await getCurrentUser()
   const transaction = await getTransactionById(transactionId, user.id)
   if (!transaction) {

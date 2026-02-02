@@ -10,6 +10,8 @@ export type TransactionData = {
   merchant?: string | null
   invoiceId?: string | null
   total?: number | null
+  vat?: number | null
+  vatRate?: number | null
   currencyCode?: string | null
   convertedTotal?: number | null
   convertedCurrencyCode?: string | null

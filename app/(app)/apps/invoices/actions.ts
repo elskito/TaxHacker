@@ -109,8 +109,8 @@ export async function saveInvoiceAsTransactionAction(
     
     // Add VAT fields if they exist (including 0% VAT)
     if (vatTax) {
-      transactionData.vat = vatAmount
-      transactionData.vat_rate = vatRate
+      transactionData.vat = Math.round(vatAmount * 100)
+      transactionData.vatRate = vatRate
     }
 
     let currencyRate = 1

@@ -446,14 +446,14 @@ export const DEFAULT_FIELDS = [
     isExtra: false,
   },
   {
-    code: "vat_rate",
+    code: "vatRate",
     name: "VAT Rate",
     type: "number",
     llm_prompt: "VAT rate in percentage 0-100",
     isVisibleInList: false,
     isVisibleInAnalysis: false,
     isRequired: false,
-    isExtra: true,
+    isExtra: false,
   },
   {
     code: "vat",
@@ -463,7 +463,7 @@ export const DEFAULT_FIELDS = [
     isVisibleInList: false,
     isVisibleInAnalysis: false,
     isRequired: false,
-    isExtra: true,
+    isExtra: false,
   },
   {
     code: "text",

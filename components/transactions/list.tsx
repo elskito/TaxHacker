@@ -147,6 +147,26 @@ export const standardFieldRenderers: Record<string, FieldRenderer> = {
       )
     },
   },
+  vat: {
+    name: "VAT",
+    code: "vat",
+    classes: "text-right",
+    sortable: true,
+    formatValue: (transaction: Transaction) => {
+      if (transaction.vat === null || transaction.vat === undefined) return ""
+      return (transaction.vat / 100).toFixed(2)
+    },
+  },
+  vatRate: {
+    name: "VAT Rate",
+    code: "vatRate",
+    classes: "text-right",
+    sortable: true,
+    formatValue: (transaction: Transaction) => {
+      if (transaction.vatRate === null || transaction.vatRate === undefined) return ""
+      return `${transaction.vatRate}%`
+    },
+  },
   convertedTotal: {
     name: "Converted Total",
     code: "convertedTotal",
