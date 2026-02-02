@@ -17,6 +17,28 @@ export const transactionFormSchema = z
         }
         return Math.round(num * 100) // convert to cents
       }),
+    vat: z
+      .string()
+      .optional()
+      .transform((val) => {
+        if (!val || val.trim() === '') return null
+        const num = parseFloat(val)
+        if (isNaN(num)) {
+          throw new z.ZodError([{ message: "Invalid VAT amount", path: ["vat"], code: z.ZodIssueCode.custom }])
+        }
+        return Math.round(num * 100) // convert to cents
+      }),
+    vatRate: z
+      .string()
+      .optional()
+      .transform((val) => {
+        if (!val || val.trim() === '') return null
+        const num = parseFloat(val)
+        if (isNaN(num)) {
+          throw new z.ZodError([{ message: "Invalid VAT rate", path: ["vatRate"], code: z.ZodIssueCode.custom }])
+        }
+        return num
+      }),
     currencyCode: z.string().max(5).optional(),
     convertedTotal: z
       .string()

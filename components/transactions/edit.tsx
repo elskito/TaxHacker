@@ -48,7 +48,7 @@ export default function TransactionEditForm({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [showPaymentHistory, setShowPaymentHistory] = useState(false)
 
-  const extraFields = fields.filter((field) => field.isExtra)
+  const extraFields = fields.filter((field) => field.isExtra && field.code !== "vat" && field.code !== "vatRate")
   
   // Calculate payment totals
   const totalPaid = useMemo(() => {
@@ -61,13 +61,30 @@ export default function TransactionEditForm({
     return remaining <= 0
   }, [transaction.total, totalPaid])
   
-  // Move computed values after formData state initialization
+  // VAT fallbacks for legacy extra fields
+
+  const extraVat = transaction.extra?.["vat"]
+  const extraVatRate = transaction.extra?.["vat_rate"] ?? transaction.extra?.["vatRate"]
+  const parsedExtraVat =
+    typeof extraVat === "number" ? extraVat : typeof extraVat === "string" ? parseFloat(extraVat) : NaN
+  const parsedExtraVatRate =
+    typeof extraVatRate === "number" ? extraVatRate : typeof extraVatRate === "string" ? parseFloat(extraVatRate) : NaN
+  const vatValue =
+    transaction.vat !== null && transaction.vat !== undefined
+      ? transaction.vat / 100
+      : Number.isFinite(parsedExtraVat)
+        ? parsedExtraVat
+        : ""
+  const vatRateValue =
+    transaction.vatRate ?? (Number.isFinite(parsedExtraVatRate) ? parsedExtraVatRate : "")
 
   const [formData, setFormData] = useState({
     name: transaction.name || "",
     merchant: transaction.merchant || "",
     description: transaction.description || "",
     total: transaction.total ? transaction.total / 100 : 0.0,
+    vat: vatValue,
+    vatRate: vatRateValue,
     currencyCode: transaction.currencyCode || settings.default_currency,
     convertedTotal: transaction.convertedTotal ? transaction.convertedTotal / 100 : 0.0,
     convertedCurrencyCode: transaction.convertedCurrencyCode,
@@ -294,17 +311,17 @@ export default function TransactionEditForm({
         isRequired={fieldMap.note.isRequired}
       />
 
-      {(fieldMap.vat_rate || fieldMap.vat) && (
+      {(fieldMap.vatRate || fieldMap.vat) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-          {fieldMap.vat_rate && (
+          {fieldMap.vatRate && (
             <FormInput
-              title={fieldMap.vat_rate.name}
+              title={fieldMap.vatRate.name}
               type="number"
               step="0.01"
-              name="vat_rate"
-              defaultValue={(formData["vat_rate" as keyof typeof formData] as string) || ""}
+              name="vatRate"
+              defaultValue={typeof formData.vatRate === "number" ? formData.vatRate.toString() : formData.vatRate}
               className="w-full"
-              isRequired={fieldMap.vat_rate.isRequired}
+              isRequired={fieldMap.vatRate.isRequired}
             />
           )}
 
@@ -314,7 +331,7 @@ export default function TransactionEditForm({
               type="number"
               step="0.01"
               name="vat"
-              defaultValue={(formData["vat" as keyof typeof formData] as string) || ""}
+              defaultValue={typeof formData.vat === "number" ? formData.vat.toFixed(2) : formData.vat}
               isRequired={fieldMap.vat.isRequired}
               className="w-full"
             />
@@ -322,9 +339,9 @@ export default function TransactionEditForm({
         </div>
       )}
 
-      {extraFields.filter(field => field.code !== "vat_rate" && field.code !== "vat").length > 0 && (
+      {extraFields.filter(field => field.code !== "vatRate" && field.code !== "vat").length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {extraFields.filter(field => field.code !== "vat_rate" && field.code !== "vat").map((field) => {
+          {extraFields.filter(field => field.code !== "vatRate" && field.code !== "vat").map((field) => {
             if (field.type === "select" && field.options && Array.isArray(field.options)) {
               const selectItems = (field.options as string[]).map((option: string) => ({
                 code: option,

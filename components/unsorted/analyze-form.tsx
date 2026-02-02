@@ -54,7 +54,10 @@ export default function AnalyzeForm({
     )
   }, [fields])
 
-  const extraFields = useMemo(() => fields.filter((field) => field.isExtra), [fields])
+  const extraFields = useMemo(
+    () => fields.filter((field) => field.isExtra && field.code !== "vat" && field.code !== "vatRate"),
+    [fields]
+  )
   const initialFormState = useMemo(() => {
     const baseState = {
       invoiceId: "",
@@ -63,6 +66,8 @@ export default function AnalyzeForm({
       description: "",
       type: settings.default_type,
       total: 0.0,
+      vat: "",
+      vatRate: "",
       currencyCode: settings.default_currency,
       convertedTotal: 0.0,
       convertedCurrencyCode: settings.default_currency,
@@ -357,18 +362,18 @@ export default function AnalyzeForm({
           required={fieldMap.note.isRequired}
         />
 
-        {(fieldMap.vat_rate || fieldMap.vat) && (
+        {(fieldMap.vatRate || fieldMap.vat) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-            {fieldMap.vat_rate && (
+            {fieldMap.vatRate && (
               <FormInput
-                title={fieldMap.vat_rate.name}
+                title={fieldMap.vatRate.name}
                 type="number"
                 step="0.01"
-                name="vat_rate"
-                value={formData["vat_rate" as keyof typeof formData]}
-                onChange={(e) => setFormData((prev) => ({ ...prev, vat_rate: e.target.value }))}
-                hideIfEmpty={!fieldMap.vat_rate.isVisibleInAnalysis}
-                required={fieldMap.vat_rate.isRequired}
+                name="vatRate"
+                value={formData.vatRate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, vatRate: e.target.value }))}
+                hideIfEmpty={!fieldMap.vatRate.isVisibleInAnalysis}
+                required={fieldMap.vatRate.isRequired}
                 className="w-full"
               />
             )}
@@ -379,7 +384,7 @@ export default function AnalyzeForm({
                 type="number"
                 step="0.01"
                 name="vat"
-                value={formData["vat" as keyof typeof formData]}
+                value={formData.vat}
                 onChange={(e) => setFormData((prev) => ({ ...prev, vat: e.target.value }))}
                 hideIfEmpty={!fieldMap.vat.isVisibleInAnalysis}
                 required={fieldMap.vat.isRequired}
@@ -389,9 +394,9 @@ export default function AnalyzeForm({
           </div>
         )}
 
-        {extraFields.filter(field => field.code !== "vat_rate" && field.code !== "vat").length > 0 && (
+        {extraFields.filter(field => field.code !== "vatRate" && field.code !== "vat").length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {extraFields.filter(field => field.code !== "vat_rate" && field.code !== "vat").map((field) => {
+            {extraFields.filter(field => field.code !== "vatRate" && field.code !== "vat").map((field) => {
           if (field.type === "select" && field.options && Array.isArray(field.options)) {
             const options = field.options.filter((opt): opt is string => typeof opt === 'string')
             return (

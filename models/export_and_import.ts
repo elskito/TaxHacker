@@ -40,6 +40,34 @@ export const EXPORT_AND_IMPORT_FIELD_MAP: Record<string, ExportImportFieldSettin
       return isNaN(num) ? 0.0 : num * 100
     },
   },
+  vat: {
+    code: "vat",
+    type: "number",
+    export: async function (userId: string, value: number | null) {
+      if (value === null || value === undefined) {
+        return null
+      }
+      return value / 100
+    },
+    import: async function (userId: string, value: string) {
+      const num = parseFloat(value)
+      return isNaN(num) ? null : Math.round(num * 100)
+    },
+  },
+  vatRate: {
+    code: "vatRate",
+    type: "number",
+    export: async function (userId: string, value: number | null) {
+      if (value === null || value === undefined) {
+        return null
+      }
+      return value
+    },
+    import: async function (userId: string, value: string) {
+      const num = parseFloat(value)
+      return isNaN(num) ? null : num
+    },
+  },
   currencyCode: {
     code: "currencyCode",
     type: "string",

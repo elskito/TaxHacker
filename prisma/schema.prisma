@@ -178,6 +178,8 @@ model Transaction {
   merchant              String?
   invoiceId             String?   @map("invoice_id")
   total                 Int?
+  vat                   Int?
+  vatRate               Float?    @map("vat_rate")
   currencyCode          String?   @map("currency_code")
   convertedTotal        Int?      @map("converted_total")
   convertedCurrencyCode String?   @map("converted_currency_code")
