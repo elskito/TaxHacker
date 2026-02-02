@@ -62,9 +62,12 @@ export default function TransactionEditForm({
   }, [transaction.total, totalPaid])
   
   // VAT fallbacks for legacy extra fields
-
-  const extraVat = transaction.extra?.["vat"]
-  const extraVatRate = transaction.extra?.["vat_rate"] ?? transaction.extra?.["vatRate"]
+  const extraRecord =
+    typeof transaction.extra === "object" && transaction.extra !== null && !Array.isArray(transaction.extra)
+      ? (transaction.extra as Record<string, unknown>)
+      : undefined
+  const extraVat = extraRecord?.["vat"]
+  const extraVatRate = extraRecord?.["vat_rate"] ?? extraRecord?.["vatRate"]
   const parsedExtraVat =
     typeof extraVat === "number" ? extraVat : typeof extraVat === "string" ? parseFloat(extraVat) : NaN
   const parsedExtraVatRate =
@@ -98,11 +101,12 @@ export default function TransactionEditForm({
     items: transaction.items || [],
     ...extraFields.reduce(
       (acc, field) => {
-        const value = transaction.extra?.[field.code as keyof typeof transaction.extra]
+        const value = extraRecord?.[field.code]
         if (field.type === "boolean") {
           acc[field.code] = value === "true" || value === true
         } else {
-          acc[field.code] = value || ""
+          acc[field.code] =
+            typeof value === "string" ? value : typeof value === "number" ? String(value) : value == null ? "" : ""
         }
         return acc
       },
