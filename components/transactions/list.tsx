@@ -154,7 +154,7 @@ export const standardFieldRenderers: Record<string, FieldRenderer> = {
     sortable: true,
     formatValue: (transaction: Transaction) => {
       if (transaction.vat === null || transaction.vat === undefined) return ""
-      return transaction.currencyCode ? formatCurrency(transaction.vat, transaction.currencyCode) : transaction.vat
+      return (transaction.vat / 100).toFixed(2)
     },
   },
   vatRate: {
