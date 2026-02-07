@@ -1,17 +1,15 @@
 "use client"
 
-import { ExportTransactionsDialog } from "@/components/export/transactions"
 import { DateRangePicker } from "@/components/forms/date-range-picker"
-import { ColumnSelector } from "@/components/transactions/fields-selector"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { isActiveFilterEntry, isFiltered, useTransactionFilters } from "@/hooks/use-transaction-filters"
 import { TransactionFilters } from "@/models/transactions"
-import { Category, Field, Project } from "@/prisma/client"
+import { Category, Project } from "@/prisma/client"
 import { format } from "date-fns"
-import { Download, SlidersHorizontal, X } from "lucide-react"
+import { SlidersHorizontal, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 const countActiveFilters = (filters: TransactionFilters) =>
@@ -20,12 +18,10 @@ const countActiveFilters = (filters: TransactionFilters) =>
 export function MobileFiltersSheet({
   categories,
   projects,
-  fields,
   total,
 }: {
   categories: Category[]
   projects: Project[]
-  fields: Field[]
   total: number
 }) {
   const [open, setOpen] = useState(false)
@@ -43,6 +39,11 @@ export function MobileFiltersSheet({
       ...prev,
       [name]: value,
     }))
+  }
+
+  const applySearchFilter = () => {
+    handleFilterChange("search", searchQuery)
+    setOpen(false)
   }
 
   return (
@@ -72,11 +73,11 @@ export function MobileFiltersSheet({
                 onChange={(event) => setSearchQuery(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
-                    handleFilterChange("search", searchQuery)
+                    applySearchFilter()
                   }
                 }}
               />
-              <Button type="button" variant="outline" onClick={() => handleFilterChange("search", searchQuery)}>
+              <Button type="button" variant="outline" onClick={applySearchFilter}>
                 Apply
               </Button>
             </div>
@@ -135,17 +136,6 @@ export function MobileFiltersSheet({
                 }}
               />
             </div>
-
-            <div>
-              <ColumnSelector fields={fields} />
-            </div>
-
-            <ExportTransactionsDialog fields={fields} categories={categories} projects={projects} total={total}>
-              <Button type="button" variant="outline" className="w-full">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-            </ExportTransactionsDialog>
 
             {isFiltered(filters) && (
               <Button

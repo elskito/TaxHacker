@@ -62,7 +62,6 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
             transactions={transactions}
             categories={categories}
             projects={projects}
-            fields={fields}
             total={total}
             initialCursor={offset + transactions.length < total ? encodeOffsetCursor(offset + transactions.length) : null}
             batchSize={TRANSACTIONS_PER_PAGE}

@@ -2,7 +2,7 @@
 
 import { isFiltered, useTransactionFilters } from "@/hooks/use-transaction-filters"
 import { normalizePaymentState } from "@/lib/payment-state"
-import { Category, Field, Payment, Project, Transaction } from "@/prisma/client"
+import { Category, Payment, Project, Transaction } from "@/prisma/client"
 import { useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MobileFiltersSheet } from "./mobile-filters-sheet"
@@ -15,7 +15,6 @@ export function MobileTransactionsContent({
   transactions,
   categories,
   projects,
-  fields,
   total: initialTotal,
   initialCursor,
   batchSize,
@@ -23,7 +22,6 @@ export function MobileTransactionsContent({
   transactions: TransactionWithPayments[]
   categories: Category[]
   projects: Project[]
-  fields: Field[]
   total: number
   initialCursor: string | null
   batchSize: number
@@ -111,7 +109,7 @@ export function MobileTransactionsContent({
 
   return (
     <div className="relative flex flex-col gap-4 pb-[88px]">
-      <MobileFiltersSheet categories={categories} projects={projects} fields={fields} total={total} />
+      <MobileFiltersSheet categories={categories} projects={projects} total={total} />
 
       <MobileGroupedList transactions={loadedTransactions} />
 
