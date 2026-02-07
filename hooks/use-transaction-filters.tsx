@@ -92,5 +92,17 @@ export function filtersToSearchParams(
 }
 
 export function isFiltered(filters: TransactionFilters) {
-  return Object.values(filters).some((value) => value !== "" && value !== "-" && value !== "all")
+  return Object.entries(filters).some(([key, value]) => isActiveFilterEntry(key, value))
+}
+
+export function isActiveFilterEntry(key: string, value: unknown) {
+  if (value === "" || value === "-" || value === undefined || value === null) {
+    return false
+  }
+
+  if (key === "paymentState" && value === "all") {
+    return false
+  }
+
+  return true
 }

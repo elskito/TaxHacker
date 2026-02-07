@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { isFiltered, useTransactionFilters } from "@/hooks/use-transaction-filters"
+import { isActiveFilterEntry, isFiltered, useTransactionFilters } from "@/hooks/use-transaction-filters"
 import { TransactionFilters } from "@/models/transactions"
 import { Category, Field, Project } from "@/prisma/client"
 import { format } from "date-fns"
@@ -15,8 +15,7 @@ import { Download, SlidersHorizontal, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 const countActiveFilters = (filters: TransactionFilters) =>
-  Object.entries(filters).filter(([key, value]) => key !== "ordering" && value && value !== "-" && value !== "all")
-    .length
+  Object.entries(filters).filter(([key, value]) => key !== "ordering" && isActiveFilterEntry(key, value)).length
 
 export function MobileFiltersSheet({
   categories,

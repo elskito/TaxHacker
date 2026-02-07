@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db"
-import { PaymentState, filterTransactionsByPaymentState, normalizePaymentState } from "@/lib/payment-state"
+import { PaymentState, normalizePaymentState } from "@/lib/payment-state"
 import { Field, Prisma, Transaction } from "@/prisma/client"
 import { cache } from "react"
 import { getFields } from "./fields"
@@ -54,6 +54,192 @@ export type TransactionWithRelations = Prisma.TransactionGetPayload<{
     payments: true
   }
 }>
+
+type TransactionIdRow = {
+  id: string
+}
+
+type CountRow = {
+  count: bigint | number | string
+}
+
+type SqlOrdering = {
+  column: Prisma.Sql
+  direction: Prisma.Sql
+}
+
+const SQL_ORDERABLE_COLUMNS: Record<string, string> = {
+  id: `t."id"`,
+  name: `t."name"`,
+  description: `t."description"`,
+  merchant: `t."merchant"`,
+  invoiceId: `t."invoice_id"`,
+  total: `t."total"`,
+  vat: `t."vat"`,
+  vatRate: `t."vat_rate"`,
+  currencyCode: `t."currency_code"`,
+  convertedTotal: `t."converted_total"`,
+  convertedCurrencyCode: `t."converted_currency_code"`,
+  type: `t."type"`,
+  note: `t."note"`,
+  categoryCode: `t."category_code"`,
+  projectCode: `t."project_code"`,
+  issuedAt: `t."issued_at"`,
+  dueDate: `t."due_date"`,
+  dateOfSale: `t."date_of_sale"`,
+  createdAt: `t."created_at"`,
+  updatedAt: `t."updated_at"`,
+}
+
+const startOfToday = () => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+const parseCount = (value: bigint | number | string | null | undefined) => {
+  if (typeof value === "bigint") {
+    return Number(value)
+  }
+  if (typeof value === "number") {
+    return value
+  }
+  if (typeof value === "string") {
+    return Number(value)
+  }
+  return 0
+}
+
+const orderRecordsByIds = <T extends { id: string }>(records: T[], orderedIds: string[]) => {
+  const recordsById = new Map(records.map((record) => [record.id, record]))
+  return orderedIds.map((id) => recordsById.get(id)).filter((record): record is T => Boolean(record))
+}
+
+const resolveSqlOrdering = (filters?: TransactionFilters): SqlOrdering => {
+  const { field, direction } = resolveTransactionOrdering(filters)
+  const column = SQL_ORDERABLE_COLUMNS[field] ?? SQL_ORDERABLE_COLUMNS.issuedAt
+  const directionSql = direction === "asc" ? "ASC" : "DESC"
+
+  return {
+    column: Prisma.raw(column),
+    direction: Prisma.raw(directionSql),
+  }
+}
+
+const buildPaymentStateWhereSql = (userId: string, filters: TransactionFilters | undefined, paymentState: PaymentState) => {
+  const clauses: Prisma.Sql[] = [Prisma.sql`t."user_id" = ${userId}::uuid`]
+
+  if (filters?.search) {
+    const search = `%${filters.search}%`
+    clauses.push(Prisma.sql`(
+      COALESCE(t."name", '') ILIKE ${search}
+      OR COALESCE(t."merchant", '') ILIKE ${search}
+      OR COALESCE(t."description", '') ILIKE ${search}
+      OR COALESCE(t."note", '') ILIKE ${search}
+      OR COALESCE(t."text", '') ILIKE ${search}
+    )`)
+  }
+
+  if (filters?.dateFrom) {
+    clauses.push(Prisma.sql`t."issued_at" >= ${new Date(filters.dateFrom)}`)
+  }
+
+  if (filters?.dateTo) {
+    clauses.push(Prisma.sql`t."issued_at" <= ${new Date(filters.dateTo)}`)
+  }
+
+  if (filters?.categoryCode && filters.categoryCode !== "-") {
+    clauses.push(Prisma.sql`t."category_code" = ${filters.categoryCode}`)
+  }
+
+  if (filters?.projectCode && filters.projectCode !== "-") {
+    clauses.push(Prisma.sql`t."project_code" = ${filters.projectCode}`)
+  }
+
+  if (filters?.type) {
+    clauses.push(Prisma.sql`t."type" = ${filters.type}`)
+  }
+
+  if (paymentState === "paid") {
+    clauses.push(
+      Prisma.sql`(
+        COALESCE(t."total", 0)::bigint <= 0
+        OR COALESCE(pt."paid_amount", 0)::bigint >= COALESCE(t."total", 0)::bigint
+      )`
+    )
+  } else if (paymentState === "overdue") {
+    const todayStart = startOfToday()
+    clauses.push(
+      Prisma.sql`(
+        COALESCE(t."total", 0)::bigint > 0
+        AND COALESCE(pt."paid_amount", 0)::bigint < COALESCE(t."total", 0)::bigint
+        AND t."due_date" < ${todayStart}
+      )`
+    )
+  } else if (paymentState === "unpaid") {
+    const todayStart = startOfToday()
+    clauses.push(
+      Prisma.sql`(
+        COALESCE(t."total", 0)::bigint > 0
+        AND COALESCE(pt."paid_amount", 0)::bigint < COALESCE(t."total", 0)::bigint
+        AND (t."due_date" IS NULL OR t."due_date" >= ${todayStart})
+      )`
+    )
+  }
+
+  return Prisma.join(clauses, " AND ")
+}
+
+const getPaymentStateTransactionIds = async ({
+  userId,
+  filters,
+  paymentState,
+  pagination,
+  includeTotal,
+}: {
+  userId: string
+  filters?: TransactionFilters
+  paymentState: Exclude<PaymentState, "all">
+  pagination?: TransactionPagination
+  includeTotal?: boolean
+}): Promise<{ ids: string[]; total?: number }> => {
+  const whereSql = buildPaymentStateWhereSql(userId, filters, paymentState)
+  const { column, direction } = resolveSqlOrdering(filters)
+
+  const fromSql = Prisma.sql`
+    FROM "transactions" t
+    LEFT JOIN (
+      SELECT "transaction_id", COALESCE(SUM("amount"), 0)::bigint AS "paid_amount"
+      FROM "payments"
+      GROUP BY "transaction_id"
+    ) pt ON pt."transaction_id" = t."id"
+    WHERE ${whereSql}
+  `
+
+  const paginationSql = pagination
+    ? Prisma.sql`LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+    : Prisma.empty
+
+  const idRows = await prisma.$queryRaw<TransactionIdRow[]>(Prisma.sql`
+    SELECT t."id"
+    ${fromSql}
+    ORDER BY ${column} ${direction}, t."id" ${direction}
+    ${paginationSql}
+  `)
+
+  if (!includeTotal) {
+    return { ids: idRows.map((row) => row.id) }
+  }
+
+  const countRows = await prisma.$queryRaw<CountRow[]>(Prisma.sql`
+    SELECT COUNT(*)::bigint AS "count"
+    ${fromSql}
+  `)
+
+  return {
+    ids: idRows.map((row) => row.id),
+    total: parseCount(countRows[0]?.count),
+  }
+}
 
 const buildTransactionWhere = (userId: string, filters?: TransactionFilters): Prisma.TransactionWhereInput => {
   const where: Prisma.TransactionWhereInput = { userId }
@@ -133,8 +319,20 @@ export const getTransactions = cache(
     const paymentState = normalizePaymentState(filters?.paymentState)
 
     if (paymentState !== "all") {
-      const allTransactions = await prisma.transaction.findMany({
-        where,
+      const { ids, total } = await getPaymentStateTransactionIds({
+        userId,
+        filters,
+        paymentState,
+        pagination,
+        includeTotal: true,
+      })
+
+      if (ids.length === 0) {
+        return { transactions: [], total: total ?? 0 }
+      }
+
+      const transactions = await prisma.transaction.findMany({
+        where: { userId, id: { in: ids } },
         include: {
           category: true,
           project: true,
@@ -142,21 +340,12 @@ export const getTransactions = cache(
             orderBy: { paidAt: "asc" },
           },
         },
-        orderBy,
       })
 
-      const filteredTransactions = filterTransactionsByPaymentState(allTransactions, paymentState)
-
-      if (!pagination) {
-        return { transactions: filteredTransactions, total: filteredTransactions.length }
+      return {
+        transactions: orderRecordsByIds(transactions, ids),
+        total: total ?? ids.length,
       }
-
-      const paginatedTransactions = filteredTransactions.slice(
-        pagination.offset,
-        pagination.offset + pagination.limit
-      )
-
-      return { transactions: paginatedTransactions, total: filteredTransactions.length }
     }
 
     if (pagination) {
@@ -199,6 +388,49 @@ export const getTransactionNavWindow = cache(
     filters?: TransactionFilters,
     windowSize = 500
   ): Promise<Transaction[]> => {
+    const paymentState = normalizePaymentState(filters?.paymentState)
+
+    if (paymentState !== "all") {
+      const { ids } = await getPaymentStateTransactionIds({
+        userId,
+        filters,
+        paymentState,
+      })
+      const currentIndex = ids.indexOf(transactionId)
+
+      if (currentIndex === -1) {
+        const fallback = await prisma.transaction.findUnique({ where: { id: transactionId, userId } })
+        return fallback ? [fallback] : []
+      }
+
+      const size = Math.max(1, windowSize)
+      const prevCount = Math.floor((size - 1) / 2)
+      const nextCount = size - prevCount - 1
+
+      let start = Math.max(0, currentIndex - prevCount)
+      let end = Math.min(ids.length, currentIndex + nextCount + 1)
+
+      const missing = size - (end - start)
+      if (missing > 0) {
+        if (start === 0) {
+          end = Math.min(ids.length, end + missing)
+        } else if (end === ids.length) {
+          start = Math.max(0, start - missing)
+        }
+      }
+
+      const windowIds = ids.slice(start, end)
+      if (windowIds.length === 0) {
+        return []
+      }
+
+      const windowTransactions = await prisma.transaction.findMany({
+        where: { userId, id: { in: windowIds } },
+      })
+
+      return orderRecordsByIds(windowTransactions, windowIds)
+    }
+
     const where = buildTransactionWhere(userId, filters)
     const orderBy = buildTransactionOrderBy(filters)
     const current = await prisma.transaction.findFirst({

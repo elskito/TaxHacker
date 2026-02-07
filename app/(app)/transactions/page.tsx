@@ -8,6 +8,7 @@ import { NewTransactionDialog } from "@/components/transactions/new"
 import { Pagination } from "@/components/transactions/pagination"
 import { Button } from "@/components/ui/button"
 import { getCurrentUser } from "@/lib/auth"
+import { encodeOffsetCursor } from "@/lib/pagination-cursor"
 import { getCategories } from "@/models/categories"
 import { getFields } from "@/models/fields"
 import { getProjects } from "@/models/projects"
@@ -26,16 +27,18 @@ const TRANSACTIONS_PER_PAGE = 500
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<TransactionFilters> }) {
   const { page, ...filters } = await searchParams
   const user = await getCurrentUser()
+  const requestedPage = Number.isFinite(Number(page)) && Number(page) > 0 ? Number(page) : 1
+  const offset = (requestedPage - 1) * TRANSACTIONS_PER_PAGE
   const { transactions, total } = await getTransactions(user.id, filters, {
     limit: TRANSACTIONS_PER_PAGE,
-    offset: ((page ?? 1) - 1) * TRANSACTIONS_PER_PAGE,
+    offset,
   })
   const categories = await getCategories(user.id)
   const projects = await getProjects(user.id)
   const fields = await getFields(user.id)
 
   // Reset page if user clicks a filter and no transactions are found
-  if (page && page > 1 && transactions.length === 0) {
+  if (requestedPage > 1 && transactions.length === 0) {
     const params = new URLSearchParams(filters as Record<string, string>)
     redirect(`?${params.toString()}`)
   }
@@ -61,6 +64,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
             projects={projects}
             fields={fields}
             total={total}
+            initialCursor={offset + transactions.length < total ? encodeOffsetCursor(offset + transactions.length) : null}
+            batchSize={TRANSACTIONS_PER_PAGE}
           />
         </main>
       </div>
