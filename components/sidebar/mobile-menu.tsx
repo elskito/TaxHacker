@@ -4,9 +4,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSidebar } from "@/components/ui/sidebar"
 import config from "@/lib/config"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 export default function MobileMenu({ unsortedFilesCount }: { unsortedFilesCount: number }) {
   const { toggleSidebar } = useSidebar()
+  const pathname = usePathname()
+
+  if (pathname === "/transactions") {
+    return null
+  }
 
   return (
     <menu className="flex flex-row gap-2 p-2 items-center justify-between fixed top-0 left-0 w-full z-50 border-b-2 border-solid bg-background md:hidden">

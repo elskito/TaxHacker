@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db"
+import { PaymentState, filterTransactionsByPaymentState, normalizePaymentState } from "@/lib/payment-state"
 import { Field, Prisma, Transaction } from "@/prisma/client"
 import { cache } from "react"
 import { getFields } from "./fields"
@@ -37,6 +38,7 @@ export type TransactionFilters = {
   categoryCode?: string
   projectCode?: string
   type?: string
+  paymentState?: PaymentState
   page?: number
 }
 
@@ -44,6 +46,14 @@ export type TransactionPagination = {
   limit: number
   offset: number
 }
+
+export type TransactionWithRelations = Prisma.TransactionGetPayload<{
+  include: {
+    category: true
+    project: true
+    payments: true
+  }
+}>
 
 const buildTransactionWhere = (userId: string, filters?: TransactionFilters): Prisma.TransactionWhereInput => {
   const where: Prisma.TransactionWhereInput = { userId }
@@ -115,11 +125,39 @@ export const getTransactions = cache(
     filters?: TransactionFilters,
     pagination?: TransactionPagination
   ): Promise<{
-    transactions: Transaction[]
+    transactions: TransactionWithRelations[]
     total: number
   }> => {
     const where = buildTransactionWhere(userId, filters)
     const orderBy = buildTransactionOrderBy(filters)
+    const paymentState = normalizePaymentState(filters?.paymentState)
+
+    if (paymentState !== "all") {
+      const allTransactions = await prisma.transaction.findMany({
+        where,
+        include: {
+          category: true,
+          project: true,
+          payments: {
+            orderBy: { paidAt: "asc" },
+          },
+        },
+        orderBy,
+      })
+
+      const filteredTransactions = filterTransactionsByPaymentState(allTransactions, paymentState)
+
+      if (!pagination) {
+        return { transactions: filteredTransactions, total: filteredTransactions.length }
+      }
+
+      const paginatedTransactions = filteredTransactions.slice(
+        pagination.offset,
+        pagination.offset + pagination.limit
+      )
+
+      return { transactions: paginatedTransactions, total: filteredTransactions.length }
+    }
 
     if (pagination) {
       const total = await prisma.transaction.count({ where })

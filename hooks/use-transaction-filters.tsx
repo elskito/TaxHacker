@@ -3,7 +3,7 @@ import { format } from "date-fns"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
-const filterKeys = ["search", "dateFrom", "dateTo", "ordering", "categoryCode", "projectCode"]
+const filterKeys = ["search", "dateFrom", "dateTo", "ordering", "categoryCode", "projectCode", "paymentState"]
 
 export function useTransactionFilters(defaultFilters?: TransactionFilters) {
   const router = useRouter()
@@ -82,9 +82,15 @@ export function filtersToSearchParams(
     searchParams.delete("projectCode")
   }
 
+  if (filters.paymentState && filters.paymentState !== "all") {
+    searchParams.set("paymentState", filters.paymentState)
+  } else {
+    searchParams.delete("paymentState")
+  }
+
   return searchParams
 }
 
 export function isFiltered(filters: TransactionFilters) {
-  return Object.values(filters).some((value) => value !== "" && value !== "-")
+  return Object.values(filters).some((value) => value !== "" && value !== "-" && value !== "all")
 }

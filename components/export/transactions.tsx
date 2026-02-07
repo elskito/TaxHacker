@@ -64,6 +64,7 @@ export function ExportTransactionsDialog({
         ordering: exportFilters?.ordering || "",
         categoryCode: exportFilters?.categoryCode || "",
         projectCode: exportFilters?.projectCode || "",
+        paymentState: exportFilters?.paymentState || "",
         fields: exportFields.join(","),
         includeAttachments: includeAttachments.toString(),
         progressId: progressId || "",
