@@ -1,11 +1,11 @@
 import { ExportTransactionsDialog } from "@/components/export/transactions"
 import { UploadButton } from "@/components/files/upload-button"
+import { DesktopTransactionsCount } from "@/components/transactions/desktop/desktop-transactions-count"
 import { TransactionSearchAndFilters } from "@/components/transactions/filters"
-import { TransactionList } from "@/components/transactions/list"
+import { DesktopTransactionsContent } from "@/components/transactions/desktop/desktop-transactions-content"
 import { MobileSidebarToggle } from "@/components/transactions/mobile/mobile-sidebar-toggle"
 import { MobileTransactionsContent } from "@/components/transactions/mobile/mobile-transactions-content"
 import { NewTransactionDialog } from "@/components/transactions/new"
-import { Pagination } from "@/components/transactions/pagination"
 import { Button } from "@/components/ui/button"
 import { getCurrentUser } from "@/lib/auth"
 import { encodeOffsetCursor } from "@/lib/pagination-cursor"
@@ -15,7 +15,6 @@ import { getProjects } from "@/models/projects"
 import { getTransactions, TransactionFilters } from "@/models/transactions"
 import { Download, Plus, Upload } from "lucide-react"
 import { Metadata } from "next"
-import { redirect } from "next/navigation"
 
 export const metadata: Metadata = {
   title: "Transactions",
@@ -25,23 +24,17 @@ export const metadata: Metadata = {
 const TRANSACTIONS_PER_PAGE = 500
 
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<TransactionFilters> }) {
-  const { page, ...filters } = await searchParams
+  const filters: TransactionFilters = { ...(await searchParams) }
+  delete filters.page
   const user = await getCurrentUser()
-  const requestedPage = Number.isFinite(Number(page)) && Number(page) > 0 ? Number(page) : 1
-  const offset = (requestedPage - 1) * TRANSACTIONS_PER_PAGE
   const { transactions, total } = await getTransactions(user.id, filters, {
     limit: TRANSACTIONS_PER_PAGE,
-    offset,
+    offset: 0,
   })
   const categories = await getCategories(user.id)
   const projects = await getProjects(user.id)
   const fields = await getFields(user.id)
-
-  // Reset page if user clicks a filter and no transactions are found
-  if (requestedPage > 1 && transactions.length === 0) {
-    const params = new URLSearchParams(filters as Record<string, string>)
-    redirect(`?${params.toString()}`)
-  }
+  const initialCursor = transactions.length < total ? encodeOffsetCursor(transactions.length) : null
 
   return (
     <>
@@ -63,7 +56,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
             categories={categories}
             projects={projects}
             total={total}
-            initialCursor={offset + transactions.length < total ? encodeOffsetCursor(offset + transactions.length) : null}
+            initialCursor={initialCursor}
             batchSize={TRANSACTIONS_PER_PAGE}
           />
         </main>
@@ -73,7 +66,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         <header className="mb-8 flex flex-wrap items-center justify-between gap-2">
           <h2 className="flex flex-row gap-3 md:gap-5">
             <span className="text-3xl font-bold tracking-tight">Transactions</span>
-            <span className="text-3xl tracking-tight opacity-20">{total}</span>
+            <DesktopTransactionsCount initialLoaded={transactions.length} initialTotal={total} />
           </h2>
           <div className="flex gap-2">
             <ExportTransactionsDialog fields={fields} categories={categories} projects={projects} total={total}>
@@ -93,9 +86,13 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         <TransactionSearchAndFilters categories={categories} projects={projects} fields={fields} />
 
         <main>
-          <TransactionList transactions={transactions} fields={fields} />
-
-          {total > TRANSACTIONS_PER_PAGE && <Pagination totalItems={total} itemsPerPage={TRANSACTIONS_PER_PAGE} />}
+          <DesktopTransactionsContent
+            transactions={transactions}
+            total={total}
+            initialCursor={initialCursor}
+            batchSize={TRANSACTIONS_PER_PAGE}
+            fields={fields}
+          />
 
           {transactions.length === 0 && (
             <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-2">

@@ -285,8 +285,11 @@ export function TransactionList({ transactions, fields = [] }: { transactions: T
   }
 
   const handleRowClick = (id: string) => {
-    const params = searchParams.toString()
-    router.push(params ? `/transactions/${id}?${params}` : `/transactions/${id}`)
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("page")
+    params.delete("cursor")
+    const query = params.toString()
+    router.push(query ? `/transactions/${id}?${query}` : `/transactions/${id}`)
   }
 
   const handleSort = (field: string) => {
@@ -351,6 +354,8 @@ export function TransactionList({ transactions, fields = [] }: { transactions: T
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString())
+    params.delete("page")
+    params.delete("cursor")
     if (sorting.field && sorting.direction) {
       const ordering = sorting.direction === "desc" ? `-${sorting.field}` : sorting.field
       params.set("ordering", ordering)

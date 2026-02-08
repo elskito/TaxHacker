@@ -241,6 +241,73 @@ const getPaymentStateTransactionIds = async ({
   }
 }
 
+const getPaymentStateTransactionWindowIds = async ({
+  userId,
+  transactionId,
+  filters,
+  paymentState,
+  windowSize,
+}: {
+  userId: string
+  transactionId: string
+  filters?: TransactionFilters
+  paymentState: Exclude<PaymentState, "all">
+  windowSize: number
+}): Promise<string[]> => {
+  const size = Math.max(1, windowSize)
+  const prevCount = Math.floor((size - 1) / 2)
+  const nextCount = size - prevCount - 1
+  const whereSql = buildPaymentStateWhereSql(userId, filters, paymentState)
+  const { column, direction } = resolveSqlOrdering(filters)
+
+  const idRows = await prisma.$queryRaw<TransactionIdRow[]>(Prisma.sql`
+    WITH filtered AS (
+      SELECT
+        t."id",
+        ROW_NUMBER() OVER (ORDER BY ${column} ${direction}, t."id" ${direction}) AS "rn"
+      FROM "transactions" t
+      LEFT JOIN (
+        SELECT "transaction_id", COALESCE(SUM("amount"), 0)::bigint AS "paid_amount"
+        FROM "payments"
+        GROUP BY "transaction_id"
+      ) pt ON pt."transaction_id" = t."id"
+      WHERE ${whereSql}
+    ),
+    target AS (
+      SELECT
+        f."rn" AS "current_rn",
+        (SELECT COUNT(*)::bigint FROM filtered) AS "total_count"
+      FROM filtered f
+      WHERE f."id" = ${transactionId}
+    ),
+    bounds AS (
+      SELECT
+        GREATEST(
+          1,
+          LEAST(
+            target."current_rn" - ${prevCount},
+            target."total_count" - ${size} + 1
+          )
+        ) AS "start_rn",
+        LEAST(
+          target."total_count",
+          GREATEST(
+            target."current_rn" + ${nextCount},
+            ${size}
+          )
+        ) AS "end_rn"
+      FROM target
+    )
+    SELECT f."id"
+    FROM filtered f
+    CROSS JOIN bounds b
+    WHERE f."rn" BETWEEN b."start_rn" AND b."end_rn"
+    ORDER BY f."rn"
+  `)
+
+  return idRows.map((row) => row.id)
+}
+
 const buildTransactionWhere = (userId: string, filters?: TransactionFilters): Prisma.TransactionWhereInput => {
   const where: Prisma.TransactionWhereInput = { userId }
 
@@ -391,37 +458,16 @@ export const getTransactionNavWindow = cache(
     const paymentState = normalizePaymentState(filters?.paymentState)
 
     if (paymentState !== "all") {
-      const { ids } = await getPaymentStateTransactionIds({
+      const windowIds = await getPaymentStateTransactionWindowIds({
         userId,
+        transactionId,
         filters,
         paymentState,
+        windowSize,
       })
-      const currentIndex = ids.indexOf(transactionId)
-
-      if (currentIndex === -1) {
+      if (windowIds.length === 0) {
         const fallback = await prisma.transaction.findUnique({ where: { id: transactionId, userId } })
         return fallback ? [fallback] : []
-      }
-
-      const size = Math.max(1, windowSize)
-      const prevCount = Math.floor((size - 1) / 2)
-      const nextCount = size - prevCount - 1
-
-      let start = Math.max(0, currentIndex - prevCount)
-      let end = Math.min(ids.length, currentIndex + nextCount + 1)
-
-      const missing = size - (end - start)
-      if (missing > 0) {
-        if (start === 0) {
-          end = Math.min(ids.length, end + missing)
-        } else if (end === ids.length) {
-          start = Math.max(0, start - missing)
-        }
-      }
-
-      const windowIds = ids.slice(start, end)
-      if (windowIds.length === 0) {
-        return []
       }
 
       const windowTransactions = await prisma.transaction.findMany({

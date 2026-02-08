@@ -1,34 +1,27 @@
 "use client"
 
-import { isFiltered, useTransactionFilters } from "@/hooks/use-transaction-filters"
-import { normalizePaymentState } from "@/lib/payment-state"
-import { Category, Payment, Project, Transaction } from "@/prisma/client"
+import { TransactionList } from "@/components/transactions/list"
+import { Field, Payment, Transaction } from "@/prisma/client"
 import { useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { MobileFiltersSheet } from "./mobile-filters-sheet"
-import { MobileGroupedList } from "./mobile-grouped-list"
-import { MobileStatusTabs } from "./mobile-status-tabs"
+import { DESKTOP_COUNT_EVENT } from "./desktop-transactions-count"
 
 type TransactionWithPayments = Transaction & { payments?: Payment[] }
 
-export function MobileTransactionsContent({
+export function DesktopTransactionsContent({
   transactions,
-  categories,
-  projects,
   total: initialTotal,
   initialCursor,
   batchSize,
+  fields,
 }: {
   transactions: TransactionWithPayments[]
-  categories: Category[]
-  projects: Project[]
   total: number
   initialCursor: string | null
   batchSize: number
+  fields: Field[]
 }) {
-  const [filters, setFilters] = useTransactionFilters()
   const searchParams = useSearchParams()
-  const activeState = normalizePaymentState(filters.paymentState)
   const [loadedTransactions, setLoadedTransactions] = useState<TransactionWithPayments[]>(transactions)
   const [total, setTotal] = useState(initialTotal)
   const [nextCursor, setNextCursor] = useState<string | null>(initialCursor)
@@ -42,6 +35,17 @@ export function MobileTransactionsContent({
     setNextCursor(initialCursor)
     setLoadError(null)
   }, [transactions, initialTotal, initialCursor])
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(DESKTOP_COUNT_EVENT, {
+        detail: {
+          loaded: loadedTransactions.length,
+          total,
+        },
+      })
+    )
+  }, [loadedTransactions.length, total])
 
   const canLoadMore = useMemo(
     () => Boolean(nextCursor) && loadedTransactions.length < total,
@@ -109,14 +113,8 @@ export function MobileTransactionsContent({
   }, [canLoadMore, loadMore])
 
   return (
-    <div className="relative flex flex-col gap-4 pb-[88px]">
-      <MobileFiltersSheet categories={categories} projects={projects} total={total} />
-
-      <MobileGroupedList transactions={loadedTransactions} />
-
-      {loadedTransactions.length === 0 && isFiltered(filters) && (
-        <p className="text-center text-xs text-muted-foreground">Try widening filters or switching tab.</p>
-      )}
+    <div className="flex flex-col gap-4">
+      {loadedTransactions.length > 0 && <TransactionList transactions={loadedTransactions} fields={fields} />}
 
       {canLoadMore && (
         <div ref={sentinelRef} className="flex justify-center py-2 text-xs text-muted-foreground">
@@ -124,17 +122,18 @@ export function MobileTransactionsContent({
         </div>
       )}
 
-      {loadError && <p className="text-center text-xs text-destructive">{loadError}</p>}
-
-      <MobileStatusTabs
-        activeState={activeState}
-        onChange={(paymentState) => {
-          setFilters((prev) => ({
-            ...prev,
-            paymentState,
-          }))
-        }}
-      />
+      {loadError && (
+        <div className="flex items-center justify-center gap-2 py-1 text-xs">
+          <p className="text-destructive">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            className="font-medium text-muted-foreground underline underline-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      )}
     </div>
   )
 }

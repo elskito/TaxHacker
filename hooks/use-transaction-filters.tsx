@@ -40,7 +40,7 @@ export function filtersToSearchParams(
   const searchParams = new URLSearchParams()
   if (currentSearchParams) {
     currentSearchParams.forEach((value, key) => {
-      if (!filterKeys.includes(key)) {
+      if (!filterKeys.includes(key) && key !== "page" && key !== "cursor") {
         searchParams.set(key, value)
       }
     })

@@ -69,8 +69,11 @@ export function MobileGroupedList({ transactions }: { transactions: TransactionW
   }, [transactions])
 
   const onRowClick = (transactionId: string) => {
-    const params = searchParams.toString()
-    router.push(params ? `/transactions/${transactionId}?${params}` : `/transactions/${transactionId}`)
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("page")
+    params.delete("cursor")
+    const query = params.toString()
+    router.push(query ? `/transactions/${transactionId}?${query}` : `/transactions/${transactionId}`)
   }
 
   if (transactions.length === 0) {
