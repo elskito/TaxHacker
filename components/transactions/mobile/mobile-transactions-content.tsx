@@ -17,6 +17,7 @@ export function MobileTransactionsContent({
   total: initialTotal,
   initialCursor,
   batchSize,
+  serverTodayStart,
 }: {
   transactions: TransactionWithPayments[]
   categories: Category[]
@@ -24,6 +25,7 @@ export function MobileTransactionsContent({
   total: number
   initialCursor: string | null
   batchSize: number
+  serverTodayStart: string
 }) {
   const [filters, setFilters] = useTransactionFilters()
   const activeState = normalizePaymentState(filters.paymentState)
@@ -39,7 +41,7 @@ export function MobileTransactionsContent({
     <div className="relative flex flex-col gap-4 pb-[88px]">
       <MobileFiltersSheet categories={categories} projects={projects} total={total} />
 
-      <MobileGroupedList transactions={loadedTransactions} />
+      <MobileGroupedList transactions={loadedTransactions} serverTodayStart={serverTodayStart} />
 
       {loadedTransactions.length === 0 && isFiltered(filters) && (
         <p className="text-center text-xs text-muted-foreground">Try widening filters or switching tab.</p>

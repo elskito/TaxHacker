@@ -16,15 +16,29 @@ const startOfToday = () => {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate())
 }
 
-const isPastDue = (dueDate?: Date | string | null) => {
+const resolveTodayStart = (todayStart?: Date | string | null) => {
+  if (todayStart instanceof Date) {
+    return Number.isNaN(todayStart.getTime()) ? startOfToday() : todayStart
+  }
+  if (typeof todayStart === "string") {
+    const parsed = new Date(todayStart)
+    return Number.isNaN(parsed.getTime()) ? startOfToday() : parsed
+  }
+  return startOfToday()
+}
+
+const isPastDue = (dueDate?: Date | string | null, todayStart?: Date | string | null) => {
   if (!dueDate) return false
   const parsedDueDate = new Date(dueDate)
   if (Number.isNaN(parsedDueDate.getTime())) return false
 
-  return parsedDueDate < startOfToday()
+  return parsedDueDate < resolveTodayStart(todayStart)
 }
 
-export const getTransactionPaymentState = (transaction: TransactionPaymentStateInput): Exclude<PaymentState, "all"> => {
+export const getTransactionPaymentState = (
+  transaction: TransactionPaymentStateInput,
+  options?: { todayStart?: Date | string | null }
+): Exclude<PaymentState, "all"> => {
   const totalAmount = transaction.total ?? 0
   const paidAmount =
     transaction.payments?.reduce((sum, payment) => sum + (typeof payment?.amount === "number" ? payment.amount : 0), 0) ??
@@ -35,7 +49,7 @@ export const getTransactionPaymentState = (transaction: TransactionPaymentStateI
     return "paid"
   }
 
-  if (isPastDue(transaction.dueDate)) {
+  if (isPastDue(transaction.dueDate, options?.todayStart)) {
     return "overdue"
   }
 

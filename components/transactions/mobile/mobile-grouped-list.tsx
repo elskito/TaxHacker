@@ -40,9 +40,16 @@ const formatAmount = (transaction: TransactionWithPayments) => {
   return "-"
 }
 
-const getStatusLabel = (transaction: TransactionWithPayments) => getTransactionPaymentState(transaction).toUpperCase()
+const getStatusLabel = (transaction: TransactionWithPayments, todayStart?: string) =>
+  getTransactionPaymentState(transaction, { todayStart }).toUpperCase()
 
-export function MobileGroupedList({ transactions }: { transactions: TransactionWithPayments[] }) {
+export function MobileGroupedList({
+  transactions,
+  serverTodayStart,
+}: {
+  transactions: TransactionWithPayments[]
+  serverTodayStart: string
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -113,7 +120,7 @@ export function MobileGroupedList({ transactions }: { transactions: TransactionW
                   <div className="truncate font-medium">{title}</div>
                   <div className="mt-1 text-xs text-muted-foreground">{subtitleParts.join(" · ")}</div>
                 </div>
-                <div className="pt-0.5 text-xs text-muted-foreground">{getStatusLabel(transaction)}</div>
+                <div className="pt-0.5 text-xs text-muted-foreground">{getStatusLabel(transaction, serverTodayStart)}</div>
               </button>
             )
           })}
