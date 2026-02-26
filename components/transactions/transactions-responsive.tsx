@@ -7,42 +7,59 @@ import { DesktopTransactionsContent } from "@/components/transactions/desktop/de
 import { TransactionSearchAndFilters } from "@/components/transactions/filters"
 import { MobileSidebarToggle } from "@/components/transactions/mobile/mobile-sidebar-toggle"
 import { MobileTransactionsContent } from "@/components/transactions/mobile/mobile-transactions-content"
-import { NewTransactionDialog } from "@/components/transactions/new"
+import { NewTransactionDialogClient } from "@/components/transactions/new-dialog-client"
 import { Button } from "@/components/ui/button"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { Category, Field, Payment, Project, Transaction } from "@/prisma/client"
+import type { Category, Currency, Field, Payment, Project, Transaction } from "@/prisma/client"
 import { Download, Plus, Upload } from "lucide-react"
+import type { SettingsMap } from "@/models/settings"
+import { useEffect, useState } from "react"
 
 type TransactionWithPayments = Transaction & { payments?: Payment[] }
 
 type TransactionsResponsiveLayoutProps = {
   transactions: TransactionWithPayments[]
   categories: Category[]
+  currencies: Currency[]
   projects: Project[]
+  settings: SettingsMap
   fields: Field[]
   total: number
   initialCursor: string | null
   batchSize: number
   serverTodayStart: string
+  initialIsMobile: boolean
 }
 
 export function TransactionsResponsiveLayout({
   transactions,
   categories,
+  currencies,
   projects,
+  settings,
   fields,
   total,
   initialCursor,
   batchSize,
   serverTodayStart,
+  initialIsMobile,
 }: TransactionsResponsiveLayoutProps) {
-  const isMobile = useIsMobile()
+  const [isMobile, setIsMobile] = useState(initialIsMobile)
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)")
+    const apply = () => setIsMobile(mql.matches)
+    apply()
+    mql.addEventListener("change", apply)
+    return () => mql.removeEventListener("change", apply)
+  }, [])
 
   return isMobile ? (
     <MobileLayout
       transactions={transactions}
       categories={categories}
+      currencies={currencies}
       projects={projects}
+      settings={settings}
       total={total}
       initialCursor={initialCursor}
       batchSize={batchSize}
@@ -52,7 +69,9 @@ export function TransactionsResponsiveLayout({
     <DesktopLayout
       transactions={transactions}
       categories={categories}
+      currencies={currencies}
       projects={projects}
+      settings={settings}
       fields={fields}
       total={total}
       initialCursor={initialCursor}
@@ -64,7 +83,9 @@ export function TransactionsResponsiveLayout({
 type MobileLayoutProps = {
   transactions: TransactionWithPayments[]
   categories: Category[]
+  currencies: Currency[]
   projects: Project[]
+  settings: SettingsMap
   total: number
   initialCursor: string | null
   batchSize: number
@@ -74,7 +95,9 @@ type MobileLayoutProps = {
 function MobileLayout({
   transactions,
   categories,
+  currencies,
   projects,
+  settings,
   total,
   initialCursor,
   batchSize,
@@ -86,11 +109,11 @@ function MobileLayout({
         <div className="flex items-center justify-between px-4 py-3">
           <MobileSidebarToggle />
           <span className="text-lg font-bold">Transactions</span>
-          <NewTransactionDialog>
+          <NewTransactionDialogClient categories={categories} currencies={currencies} settings={settings} projects={projects}>
             <Button size="icon">
               <Plus />
             </Button>
-          </NewTransactionDialog>
+          </NewTransactionDialogClient>
         </div>
       </header>
       <main className="px-4 py-4">
@@ -111,7 +134,9 @@ function MobileLayout({
 type DesktopLayoutProps = {
   transactions: TransactionWithPayments[]
   categories: Category[]
+  currencies: Currency[]
   projects: Project[]
+  settings: SettingsMap
   fields: Field[]
   total: number
   initialCursor: string | null
@@ -121,7 +146,9 @@ type DesktopLayoutProps = {
 function DesktopLayout({
   transactions,
   categories,
+  currencies,
   projects,
+  settings,
   fields,
   total,
   initialCursor,
@@ -141,11 +168,11 @@ function DesktopLayout({
               <span className="hidden md:block">Export</span>
             </Button>
           </ExportTransactionsDialog>
-          <NewTransactionDialog>
+          <NewTransactionDialogClient categories={categories} currencies={currencies} settings={settings} projects={projects}>
             <Button>
               <Plus /> <span className="hidden md:block">Add Transaction</span>
             </Button>
-          </NewTransactionDialog>
+          </NewTransactionDialogClient>
         </div>
       </header>
 
@@ -169,12 +196,12 @@ function DesktopLayout({
               <UploadButton>
                 <Upload /> Analyze New Invoice
               </UploadButton>
-              <NewTransactionDialog>
+              <NewTransactionDialogClient categories={categories} currencies={currencies} settings={settings} projects={projects}>
                 <Button variant="outline">
                   <Plus />
                   Add Manually
                 </Button>
-              </NewTransactionDialog>
+              </NewTransactionDialogClient>
             </div>
           </div>
         )}

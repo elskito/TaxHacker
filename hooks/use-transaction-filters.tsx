@@ -1,4 +1,5 @@
 import { TransactionFilters } from "@/models/transactions"
+import { normalizePaymentState } from "@/lib/payment-state"
 import { format } from "date-fns"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -26,10 +27,13 @@ export function useTransactionFilters(defaultFilters?: TransactionFilters) {
 }
 
 export function searchParamsToFilters(searchParams: URLSearchParams) {
-  return filterKeys.reduce((acc, filter) => {
+  const result = filterKeys.reduce((acc, filter) => {
     acc[filter] = searchParams.get(filter) || ""
     return acc
   }, {} as Record<string, string>) as TransactionFilters
+
+  result.paymentState = normalizePaymentState(searchParams.get("paymentState"))
+  return result
 }
 
 export function filtersToSearchParams(
@@ -100,8 +104,8 @@ export function isActiveFilterEntry(key: string, value: unknown) {
     return false
   }
 
-  if (key === "paymentState" && value === "all") {
-    return false
+  if (key === "paymentState") {
+    return normalizePaymentState(String(value)) !== "all"
   }
 
   return true

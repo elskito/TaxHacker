@@ -2,11 +2,19 @@
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useIsMobile } from "@/hooks/use-mobile"
 import { Download, Loader2, Plus } from "lucide-react"
+import { useEffect, useState } from "react"
 
-export function TransactionsLoading() {
-  const isMobile = useIsMobile()
+export function TransactionsLoading({ initialIsMobile }: { initialIsMobile: boolean }) {
+  const [isMobile, setIsMobile] = useState(initialIsMobile)
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)")
+    const apply = () => setIsMobile(mql.matches)
+    apply()
+    mql.addEventListener("change", apply)
+    return () => mql.removeEventListener("change", apply)
+  }, [])
 
   return isMobile ? <MobileLoading /> : <DesktopLoading />
 }

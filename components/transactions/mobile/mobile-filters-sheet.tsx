@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { isActiveFilterEntry, isFiltered, useTransactionFilters } from "@/hooks/use-transaction-filters"
+import { isActiveFilterEntry, isFiltered } from "@/hooks/use-transaction-filters"
 import { TransactionFilters } from "@/models/transactions"
 import { Category, Project } from "@/prisma/client"
 import { format } from "date-fns"
 import { SlidersHorizontal, X } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react"
 
 const countActiveFilters = (filters: TransactionFilters) =>
   Object.entries(filters).filter(([key, value]) => key !== "ordering" && isActiveFilterEntry(key, value)).length
@@ -19,13 +19,16 @@ export function MobileFiltersSheet({
   categories,
   projects,
   total,
+  filters,
+  setFilters,
 }: {
   categories: Category[]
   projects: Project[]
   total: number
+  filters: TransactionFilters
+  setFilters: Dispatch<SetStateAction<TransactionFilters>>
 }) {
   const [open, setOpen] = useState(false)
-  const [filters, setFilters] = useTransactionFilters()
   const [searchQuery, setSearchQuery] = useState(filters.search || "")
 
   useEffect(() => {

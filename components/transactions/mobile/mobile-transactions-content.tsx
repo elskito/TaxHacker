@@ -39,7 +39,13 @@ export function MobileTransactionsContent({
 
   return (
     <div className="relative flex flex-col gap-4 pb-[88px]">
-      <MobileFiltersSheet categories={categories} projects={projects} total={total} />
+      <MobileFiltersSheet
+        categories={categories}
+        projects={projects}
+        total={total}
+        filters={filters}
+        setFilters={setFilters}
+      />
 
       <MobileGroupedList transactions={loadedTransactions} serverTodayStart={serverTodayStart} />
 
