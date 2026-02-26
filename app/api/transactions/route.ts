@@ -39,7 +39,11 @@ export async function GET(request: Request) {
     offset: cursor,
   })
 
-  const nextCursor = cursor + transactions.length < total ? encodeOffsetCursor(cursor + transactions.length) : null
+  const fetchedCount = transactions.length
+  const nextOffset = cursor + fetchedCount
+  // Empty pages must terminate pagination to avoid re-issuing the same cursor under concurrent data changes.
+  const nextCursor =
+    fetchedCount > 0 && nextOffset > cursor && nextOffset < total ? encodeOffsetCursor(nextOffset) : null
 
   return NextResponse.json({
     transactions,

@@ -113,6 +113,8 @@ const parseCount = (value: bigint | number | string | null | undefined) => {
   return 0
 }
 
+const escapeForSqlLikePattern = (value: string) => value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_")
+
 const orderRecordsByIds = <T extends { id: string }>(records: T[], orderedIds: string[]) => {
   const recordsById = new Map(records.map((record) => [record.id, record]))
   return orderedIds.map((id) => recordsById.get(id)).filter((record): record is T => Boolean(record))
@@ -133,13 +135,14 @@ const buildPaymentStateWhereSql = (userId: string, filters: TransactionFilters |
   const clauses: Prisma.Sql[] = [Prisma.sql`t."user_id" = ${userId}::uuid`]
 
   if (filters?.search) {
-    const search = `%${filters.search}%`
+    const escapedSearch = escapeForSqlLikePattern(filters.search)
+    const search = `%${escapedSearch}%`
     clauses.push(Prisma.sql`(
-      COALESCE(t."name", '') ILIKE ${search}
-      OR COALESCE(t."merchant", '') ILIKE ${search}
-      OR COALESCE(t."description", '') ILIKE ${search}
-      OR COALESCE(t."note", '') ILIKE ${search}
-      OR COALESCE(t."text", '') ILIKE ${search}
+      COALESCE(t."name", '') ILIKE ${search} ESCAPE '\\'
+      OR COALESCE(t."merchant", '') ILIKE ${search} ESCAPE '\\'
+      OR COALESCE(t."description", '') ILIKE ${search} ESCAPE '\\'
+      OR COALESCE(t."note", '') ILIKE ${search} ESCAPE '\\'
+      OR COALESCE(t."text", '') ILIKE ${search} ESCAPE '\\'
     )`)
   }
 
