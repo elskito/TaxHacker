@@ -91,6 +91,10 @@ const SQL_ORDERABLE_COLUMNS: Record<string, string> = {
   updatedAt: `t."updated_at"`,
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+const isUuid = (value: string) => UUID_PATTERN.test(value)
+
 const startOfToday = () => {
   const now = new Date()
   return new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -278,7 +282,7 @@ const getPaymentStateTransactionWindowIds = async ({
         f."rn" AS "current_rn",
         (SELECT COUNT(*)::bigint FROM filtered) AS "total_count"
       FROM filtered f
-      WHERE f."id" = ${transactionId}
+      WHERE f."id" = ${transactionId}::uuid
     ),
     bounds AS (
       SELECT
@@ -514,6 +518,10 @@ export const getTransactionNavWindow = cache(
 )
 
 export const getTransactionById = cache(async (id: string, userId: string): Promise<Transaction | null> => {
+  if (!isUuid(id)) {
+    return null
+  }
+
   return await prisma.transaction.findUnique({
     where: { id, userId },
     include: {
