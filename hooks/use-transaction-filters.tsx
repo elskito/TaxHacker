@@ -1,9 +1,10 @@
 import { TransactionFilters } from "@/models/transactions"
+import { normalizePaymentState } from "@/lib/payment-state"
 import { format } from "date-fns"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
-const filterKeys = ["search", "dateFrom", "dateTo", "ordering", "categoryCode", "projectCode"]
+const filterKeys = ["search", "dateFrom", "dateTo", "ordering", "categoryCode", "projectCode", "paymentState"]
 
 export function useTransactionFilters(defaultFilters?: TransactionFilters) {
   const router = useRouter()
@@ -26,10 +27,13 @@ export function useTransactionFilters(defaultFilters?: TransactionFilters) {
 }
 
 export function searchParamsToFilters(searchParams: URLSearchParams) {
-  return filterKeys.reduce((acc, filter) => {
+  const result = filterKeys.reduce((acc, filter) => {
     acc[filter] = searchParams.get(filter) || ""
     return acc
   }, {} as Record<string, string>) as TransactionFilters
+
+  result.paymentState = normalizePaymentState(searchParams.get("paymentState"))
+  return result
 }
 
 export function filtersToSearchParams(
@@ -40,7 +44,7 @@ export function filtersToSearchParams(
   const searchParams = new URLSearchParams()
   if (currentSearchParams) {
     currentSearchParams.forEach((value, key) => {
-      if (!filterKeys.includes(key)) {
+      if (!filterKeys.includes(key) && key !== "page" && key !== "cursor") {
         searchParams.set(key, value)
       }
     })
@@ -82,9 +86,27 @@ export function filtersToSearchParams(
     searchParams.delete("projectCode")
   }
 
+  if (filters.paymentState && filters.paymentState !== "all") {
+    searchParams.set("paymentState", filters.paymentState)
+  } else {
+    searchParams.delete("paymentState")
+  }
+
   return searchParams
 }
 
 export function isFiltered(filters: TransactionFilters) {
-  return Object.values(filters).some((value) => value !== "" && value !== "-")
+  return Object.entries(filters).some(([key, value]) => isActiveFilterEntry(key, value))
+}
+
+export function isActiveFilterEntry(key: string, value: unknown) {
+  if (value === "" || value === "-" || value === undefined || value === null) {
+    return false
+  }
+
+  if (key === "paymentState") {
+    return normalizePaymentState(String(value)) !== "all"
+  }
+
+  return true
 }
