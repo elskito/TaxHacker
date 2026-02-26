@@ -2,7 +2,7 @@
 
 import { getTransactionPaymentState } from "@/lib/payment-state"
 import { calcTotalPerCurrency } from "@/lib/stats"
-import { formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 import { Payment, Transaction } from "@/prisma/client"
 import { format } from "date-fns"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -42,6 +42,20 @@ const formatAmount = (transaction: TransactionWithPayments) => {
 
 const getStatusLabel = (transaction: TransactionWithPayments, todayStart?: string) =>
   getTransactionPaymentState(transaction, { todayStart }).toUpperCase()
+
+const getRowGradientClass = (transaction: TransactionWithPayments, todayStart?: string) => {
+  const paymentState = getTransactionPaymentState(transaction, { todayStart })
+
+  if (paymentState === "paid") {
+    return "bg-gradient-to-l from-emerald-50/80 via-green-50/60 to-white"
+  }
+
+  if (paymentState === "overdue") {
+    return "bg-gradient-to-l from-amber-50/90 via-yellow-50/70 to-white"
+  }
+
+  return "bg-gradient-to-l from-rose-50/80 via-red-50/60 to-white"
+}
 
 export function MobileGroupedList({
   transactions,
@@ -114,7 +128,10 @@ export function MobileGroupedList({
                 key={transaction.id}
                 type="button"
                 onClick={() => onRowClick(transaction.id)}
-                className="flex w-full items-start justify-between gap-4 border-b px-3 py-3 text-left last:border-b-0"
+                className={cn(
+                  "flex w-full items-start justify-between gap-4 border-b px-3 py-3 text-left last:border-b-0",
+                  getRowGradientClass(transaction, serverTodayStart)
+                )}
               >
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{title}</div>
