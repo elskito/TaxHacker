@@ -106,7 +106,7 @@ function MobileLayout({
   return (
     <div className="-mt-[60px]">
       <header className="sticky top-0 z-30 border-b bg-background">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between py-3">
           <MobileSidebarToggle />
           <span className="text-lg font-bold">Transactions</span>
           <NewTransactionDialogClient categories={categories} currencies={currencies} settings={settings} projects={projects}>
@@ -116,7 +116,7 @@ function MobileLayout({
           </NewTransactionDialogClient>
         </div>
       </header>
-      <main className="px-4 py-4">
+      <main className="py-4">
         <MobileTransactionsContent
           transactions={transactions}
           categories={categories}

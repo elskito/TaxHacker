@@ -29,7 +29,7 @@ function MobileLoading() {
           <Skeleton className="h-9 w-9" />
         </div>
       </header>
-      <main className="px-4 py-4">
+      <main className="py-4">
         <div className="flex flex-col gap-4 pb-[88px]">
           <div className="flex items-center justify-between gap-2">
             <Skeleton className="h-9 w-24" />
