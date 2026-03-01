@@ -49,6 +49,11 @@ export function MobileFiltersSheet({
     setOpen(false)
   }
 
+  const clearSearchFilter = () => {
+    setSearchQuery("")
+    handleFilterChange("search", "")
+  }
+
   return (
     <>
       <div className="flex items-center justify-between gap-2">
@@ -87,7 +92,7 @@ export function MobileFiltersSheet({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => setSearchQuery("")}
+                    onClick={clearSearchFilter}
                     className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     title="Clear search"
                   >
