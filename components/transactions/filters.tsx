@@ -9,6 +9,7 @@ import { isFiltered, useTransactionFilters } from "@/hooks/use-transaction-filte
 import { TransactionFilters } from "@/models/transactions"
 import { Category, Field, Project } from "@/prisma/client"
 import { X } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export function TransactionSearchAndFilters({
   categories,
@@ -20,28 +21,51 @@ export function TransactionSearchAndFilters({
   fields: Field[]
 }) {
   const [filters, setFilters] = useTransactionFilters()
+  const [searchValue, setSearchValue] = useState(filters.search ?? "")
 
-  const handleFilterChange = (name: keyof TransactionFilters, value: any) => {
+  const handleFilterChange = <K extends keyof TransactionFilters>(name: K, value: TransactionFilters[K]) => {
     setFilters((prev) => ({
       ...prev,
       [name]: value,
     }))
   }
 
+  useEffect(() => {
+    setSearchValue(filters.search ?? "")
+  }, [filters.search])
+
+  const clearSearch = () => {
+    setSearchValue("")
+    handleFilterChange("search", "")
+  }
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mb-4 flex flex-col gap-4">
       <div className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[200px]">
+        <div className="relative min-w-[200px] flex-1">
           <Input
             placeholder="Search transactions..."
-            defaultValue={filters.search}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                handleFilterChange("search", (e.target as HTMLInputElement).value)
+                handleFilterChange("search", searchValue)
               }
             }}
-            className="w-full"
+            className="w-full pr-10"
           />
+          {searchValue && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={clearSearch}
+              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              title="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         <Select value={filters.categoryCode} onValueChange={(value) => handleFilterChange("categoryCode", value)}>
