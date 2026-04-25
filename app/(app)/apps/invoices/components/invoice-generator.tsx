@@ -1,7 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { fetchAsBase64 } from "@/lib/utils"
 import { SettingsMap } from "@/models/settings"
@@ -19,6 +25,7 @@ import {
 import defaultTemplates, { InvoiceTemplate } from "../default-templates"
 import { InvoiceAppData } from "../page"
 import { InvoiceFormData, InvoicePDFData, InvoicePage } from "./invoice-page"
+import { DeleteModal } from "@/components/transactions/delete-file-modal"
 
 type InvoiceItem = InvoiceFormData["items"][number]
 type InvoiceTax = InvoiceFormData["additionalTaxes"][number]
@@ -146,6 +153,8 @@ export function InvoiceGenerator({
   const [isRenameTemplateDialogOpen, setIsRenameTemplateDialogOpen] = useState(false)
   const [newTemplateName, setNewTemplateName] = useState("")
   const [renameTemplateName, setRenameTemplateName] = useState("")
+  const [templateToDelete, setTemplateToDelete] = useState<InvoiceTemplate | null>(null)
+  const [isDeletingTemplate, setIsDeletingTemplate] = useState(false)
   const [formData, dispatch] = useReducer(invoiceFormReducer, templates[0].formData)
   const [isPdfLoading, setIsPdfLoading] = useState(false)
   const [isSavingTransaction, setIsSavingTransaction] = useState(false)
@@ -238,18 +247,28 @@ export function InvoiceGenerator({
     }
   }
 
-  const handleDeleteTemplate = async (templateId: string | undefined, e: React.MouseEvent) => {
+  const handleDeleteTemplateClick = (template: InvoiceTemplate, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!templateId) return // Don't allow deleting default templates
+    if (!template.id) return
+    setTemplateToDelete(template)
+  }
 
+  const handleDeleteTemplateConfirm = async () => {
+    if (!templateToDelete?.id) return
+    setIsDeletingTemplate(true)
     try {
-      const result = await deleteTemplateAction(user, templateId)
+      const result = await deleteTemplateAction(user, templateToDelete.id)
       if (result.success) {
+        setTemplateToDelete(null)
         router.refresh()
+      } else {
+        alert("Failed to delete template. Please try again.")
       }
     } catch (error) {
       console.error("Error deleting template:", error)
       alert("Failed to delete template. Please try again.")
+    } finally {
+      setIsDeletingTemplate(false)
     }
   }
 
@@ -378,7 +397,7 @@ export function InvoiceGenerator({
                 variant="destructive"
                 size="icon"
                 className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => handleDeleteTemplate(template.id, e)}
+                onClick={(e) => handleDeleteTemplateClick(template, e)}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -495,6 +514,17 @@ export function InvoiceGenerator({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeleteModal
+        isOpen={Boolean(templateToDelete)}
+        onClose={() => {
+          if (isDeletingTemplate) return
+          setTemplateToDelete(null)
+        }}
+        onConfirm={handleDeleteTemplateConfirm}
+        title="Delete Template"
+        description={`Are you sure you want to delete "${templateToDelete?.name || "this template"}"? This action cannot be undone.`}
+      />
     </div>
   )
 }
