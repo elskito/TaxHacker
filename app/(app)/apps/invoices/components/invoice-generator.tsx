@@ -2,10 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { fetchAsBase64 } from "@/lib/utils"
 import { SettingsMap } from "@/models/settings"
 import { Currency, User } from "@/prisma/client"
-import { FileDown, Loader2, Save, TextSelect, X } from "lucide-react"
+import { FileDown, Loader2, Pencil, Save, TextSelect, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { startTransition, useCallback, useMemo, useReducer, useState } from "react"
 import {
@@ -19,7 +20,24 @@ import defaultTemplates, { InvoiceTemplate } from "../default-templates"
 import { InvoiceAppData } from "../page"
 import { InvoiceFormData, InvoicePDFData, InvoicePage } from "./invoice-page"
 
-function invoiceFormReducer(state: InvoiceFormData, action: any): InvoiceFormData {
+type InvoiceItem = InvoiceFormData["items"][number]
+type InvoiceTax = InvoiceFormData["additionalTaxes"][number]
+type InvoiceFee = InvoiceFormData["additionalFees"][number]
+
+type InvoiceFormAction =
+  | { type: "SET_FORM"; payload: InvoiceFormData }
+  | { type: "UPDATE_FIELD"; field: keyof InvoiceFormData; value: InvoiceFormData[keyof InvoiceFormData] }
+  | { type: "ADD_ITEM" }
+  | { type: "UPDATE_ITEM"; index: number; field: keyof InvoiceItem; value: InvoiceItem[keyof InvoiceItem] }
+  | { type: "REMOVE_ITEM"; index: number }
+  | { type: "ADD_TAX" }
+  | { type: "UPDATE_TAX"; index: number; field: keyof InvoiceTax; value: InvoiceTax[keyof InvoiceTax] }
+  | { type: "REMOVE_TAX"; index: number }
+  | { type: "ADD_FEE" }
+  | { type: "UPDATE_FEE"; index: number; field: keyof InvoiceFee; value: InvoiceFee[keyof InvoiceFee] }
+  | { type: "REMOVE_FEE"; index: number }
+
+function invoiceFormReducer(state: InvoiceFormData, action: InvoiceFormAction): InvoiceFormData {
   switch (action.type) {
     case "SET_FORM":
       return action.payload
@@ -125,13 +143,17 @@ export function InvoiceGenerator({
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>(templates[0].name)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+  const [isRenameTemplateDialogOpen, setIsRenameTemplateDialogOpen] = useState(false)
   const [newTemplateName, setNewTemplateName] = useState("")
+  const [renameTemplateName, setRenameTemplateName] = useState("")
   const [formData, dispatch] = useReducer(invoiceFormReducer, templates[0].formData)
   const [isPdfLoading, setIsPdfLoading] = useState(false)
   const [isSavingTransaction, setIsSavingTransaction] = useState(false)
   const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false)
+  const [isRenamingTemplate, setIsRenamingTemplate] = useState(false)
 
   const router = useRouter()
+  const selectedTemplateData = templates.find((t) => t.name === selectedTemplate)
 
   // Function to handle template selection
   const handleTemplateSelect = (templateName: string) => {
@@ -191,7 +213,7 @@ export function InvoiceGenerator({
       return
     }
 
-    if (templates.some((t) => t.name === newTemplateName)) {
+    if (templates.some((t) => t.name === newTemplateName.trim())) {
       alert("A template with this name already exists")
       return
     }
@@ -199,7 +221,7 @@ export function InvoiceGenerator({
     try {
       const result = await addNewTemplateAction(user, {
         id: `tmpl_${Math.random().toString(36).substring(2, 15)}`,
-        name: newTemplateName,
+        name: newTemplateName.trim(),
         formData: formData,
       })
 
@@ -232,7 +254,6 @@ export function InvoiceGenerator({
   }
 
   const handleUpdateTemplate = async () => {
-    const selectedTemplateData = templates.find((t) => t.name === selectedTemplate)
     if (!selectedTemplateData || !selectedTemplateData.id) {
       alert("Cannot update default templates")
       return
@@ -260,6 +281,52 @@ export function InvoiceGenerator({
       console.error("Error updating template:", error)
       alert("Failed to update template. Please try again.")
       setIsUpdatingTemplate(false)
+    }
+  }
+
+  const openRenameTemplateDialog = () => {
+    if (!selectedTemplateData?.id) return
+    setRenameTemplateName(selectedTemplateData.name)
+    setIsRenameTemplateDialogOpen(true)
+  }
+
+  const handleRenameTemplate = async () => {
+    if (!selectedTemplateData?.id) {
+      alert("Cannot rename default templates")
+      return
+    }
+
+    const trimmedName = renameTemplateName.trim()
+    if (!trimmedName) {
+      alert("Please enter a template name")
+      return
+    }
+
+    if (templates.some((t) => t.id !== selectedTemplateData.id && t.name === trimmedName)) {
+      alert("A template with this name already exists")
+      return
+    }
+
+    setIsRenamingTemplate(true)
+
+    try {
+      const result = await updateTemplateAction(user, selectedTemplateData.id, {
+        ...selectedTemplateData,
+        name: trimmedName,
+      })
+
+      if (result.success) {
+        setSelectedTemplate(trimmedName)
+        setIsRenameTemplateDialogOpen(false)
+        router.refresh()
+      } else {
+        alert("Failed to rename template. Please try again.")
+      }
+    } catch (error) {
+      console.error("Error renaming template:", error)
+      alert("Failed to rename template. Please try again.")
+    } finally {
+      setIsRenamingTemplate(false)
     }
   }
 
@@ -295,7 +362,7 @@ export function InvoiceGenerator({
       {/* Templates Section */}
       <div className="py-4 flex overflow-x-auto gap-2">
         {templates.map((template) => (
-          <div key={template.name} className="relative group">
+          <div key={template.id ?? template.name} className="relative group">
             <Button
               variant={selectedTemplate === template.name ? "default" : "outline"}
               className={`
@@ -343,11 +410,24 @@ export function InvoiceGenerator({
           <Button 
             variant="secondary" 
             onClick={handleUpdateTemplate}
-            disabled={!templates.find((t) => t.name === selectedTemplate)?.id || isUpdatingTemplate}
+            disabled={!selectedTemplateData?.id || isUpdatingTemplate}
             className="justify-start"
           >
             <Save className={`h-4 w-4 flex-shrink-0 ${isUpdatingTemplate ? "text-green-600" : ""}`} />
             <span className="ml-2">{isUpdatingTemplate ? "Updating..." : "Update a Template"}</span>
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={openRenameTemplateDialog}
+            disabled={!selectedTemplateData?.id || isRenamingTemplate}
+            className="justify-start"
+          >
+            {isRenamingTemplate ? (
+              <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+            ) : (
+              <Pencil className="h-4 w-4 flex-shrink-0" />
+            )}
+            <span className="ml-2">{isRenamingTemplate ? "Renaming..." : "Rename Template"}</span>
           </Button>
           <Button variant="secondary" onClick={handleSaveAsTransaction} disabled={isSavingTransaction} className="justify-start">
             {isSavingTransaction ? (
@@ -377,12 +457,10 @@ export function InvoiceGenerator({
             <DialogTitle>Save as Template</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <input
-              type="text"
+            <Input
               value={newTemplateName}
               onChange={(e) => setNewTemplateName(e.target.value)}
               placeholder="Enter template name"
-              className="w-full px-3 py-2 border rounded-md"
             />
           </div>
           <DialogFooter>
@@ -390,6 +468,30 @@ export function InvoiceGenerator({
               Cancel
             </Button>
             <Button onClick={handleSaveTemplate}>Save Template</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Template Dialog */}
+      <Dialog open={isRenameTemplateDialogOpen} onOpenChange={setIsRenameTemplateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Template</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={renameTemplateName}
+              onChange={(e) => setRenameTemplateName(e.target.value)}
+              placeholder="Enter template name"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRenameTemplateDialogOpen(false)} disabled={isRenamingTemplate}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameTemplate} disabled={isRenamingTemplate}>
+              {isRenamingTemplate ? "Renaming..." : "Rename Template"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
