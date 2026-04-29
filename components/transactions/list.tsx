@@ -9,6 +9,7 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { Category, Field, Project, Transaction } from "@/prisma/client"
 import { formatDate } from "date-fns"
 import { ArrowDownIcon, ArrowUpIcon, File, Check, X } from "lucide-react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
@@ -284,12 +285,12 @@ export function TransactionList({ transactions, fields = [] }: { transactions: T
     }
   }
 
-  const handleRowClick = (id: string) => {
+  const getTransactionHref = (id: string) => {
     const params = new URLSearchParams(searchParams.toString())
     params.delete("page")
     params.delete("cursor")
     const query = params.toString()
-    router.push(query ? `/transactions/${id}?${query}` : `/transactions/${id}`)
+    return query ? `/transactions/${id}?${query}` : `/transactions/${id}`
   }
 
   const handleSort = (field: string) => {
@@ -406,7 +407,6 @@ export function TransactionList({ transactions, fields = [] }: { transactions: T
                 selectedIds.includes(transaction.id) && "bg-muted",
                 "cursor-pointer hover:bg-muted/50"
               )}
-              onClick={() => handleRowClick(transaction.id)}
             >
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <Checkbox
@@ -419,8 +419,10 @@ export function TransactionList({ transactions, fields = [] }: { transactions: T
                 />
               </TableCell>
               {visibleFields.map((field) => (
-                <TableCell key={field.code} className={field.renderer.classes}>
-                  {renderFieldInTable(transaction, field)}
+                <TableCell key={field.code} className={cn(field.renderer.classes, "p-0")}>
+                  <Link href={getTransactionHref(transaction.id)} className="block w-full p-2 text-inherit">
+                    {renderFieldInTable(transaction, field)}
+                  </Link>
                 </TableCell>
               ))}
             </TableRow>

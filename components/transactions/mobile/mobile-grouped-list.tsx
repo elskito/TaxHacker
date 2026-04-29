@@ -5,7 +5,8 @@ import { calcTotalPerCurrency } from "@/lib/stats"
 import { cn, formatCurrency } from "@/lib/utils"
 import { Payment, Transaction } from "@/prisma/client"
 import { format } from "date-fns"
-import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useMemo } from "react"
 
 type TransactionWithPayments = Transaction & { payments?: Payment[] }
@@ -64,7 +65,6 @@ export function MobileGroupedList({
   transactions: TransactionWithPayments[]
   serverTodayStart: string
 }) {
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   const groupedTransactions = useMemo(() => {
@@ -89,12 +89,12 @@ export function MobileGroupedList({
     return [...groups.values()]
   }, [transactions])
 
-  const onRowClick = (transactionId: string) => {
+  const getTransactionHref = (transactionId: string) => {
     const params = new URLSearchParams(searchParams.toString())
     params.delete("page")
     params.delete("cursor")
     const query = params.toString()
-    router.push(query ? `/transactions/${transactionId}?${query}` : `/transactions/${transactionId}`)
+    return query ? `/transactions/${transactionId}?${query}` : `/transactions/${transactionId}`
   }
 
   if (transactions.length === 0) {
@@ -124,10 +124,9 @@ export function MobileGroupedList({
             }
 
             return (
-              <button
+              <Link
                 key={transaction.id}
-                type="button"
-                onClick={() => onRowClick(transaction.id)}
+                href={getTransactionHref(transaction.id)}
                 className={cn(
                   "flex w-full items-start justify-between gap-4 border-b px-3 py-3 text-left last:border-b-0",
                   getRowGradientClass(transaction, serverTodayStart)
@@ -138,7 +137,7 @@ export function MobileGroupedList({
                   <div className="mt-1 text-xs text-muted-foreground">{subtitleParts.join(" · ")}</div>
                 </div>
                 <div className="pt-0.5 text-xs text-muted-foreground">{getStatusLabel(transaction, serverTodayStart)}</div>
-              </button>
+              </Link>
             )
           })}
         </section>
