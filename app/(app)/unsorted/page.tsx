@@ -33,7 +33,7 @@ export default async function UnsortedPage() {
 
   return (
     <>
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col items-center justify-center gap-3 text-center">
         <h2 className="text-3xl font-bold tracking-tight">You have {files.length} unsorted files</h2>
         {files.length > 1 && <AnalyzeAllButton />}
       </header>
@@ -85,15 +85,15 @@ export default async function UnsortedPage() {
           </Card>
         ))}
         {files.length == 0 && (
-          <div className="flex flex-col items-center justify-center gap-2 h-full min-h-[600px]">
+          <div className="flex h-full min-h-[600px] flex-col items-center justify-center gap-2 text-center">
             <PartyPopper className="w-12 h-12 text-muted-foreground" />
             <p className="pt-4 text-muted-foreground">Everything is clear! Congrats!</p>
-            <p className="flex flex-row gap-2 text-muted-foreground">
+            <p className="flex flex-row flex-wrap items-center justify-center gap-2 text-muted-foreground">
               <span>Drag and drop new files here to analyze</span>
               <Upload />
             </p>
 
-            <div className="flex flex-row gap-5 mt-8">
+            <div className="mt-8 flex flex-row flex-wrap justify-center gap-5">
               <UploadButton>
                 <Upload /> Upload New File
               </UploadButton>
