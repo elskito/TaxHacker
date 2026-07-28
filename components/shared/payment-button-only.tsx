@@ -21,6 +21,7 @@ interface PaymentButtonOnlyProps {
   onAddPayment: (amount: number, paidAt: Date, note?: string, proofOfPaymentFile?: File) => void
   className?: string
   showProofOfPayment?: boolean
+  defaultDate?: string
 }
 
 export function PaymentButtonOnly({
@@ -30,10 +31,12 @@ export function PaymentButtonOnly({
   onAddPayment,
   className = "",
   showProofOfPayment = true,
+  defaultDate,
 }: PaymentButtonOnlyProps) {
+  const initialPaymentDate = defaultDate || format(new Date(), "yyyy-MM-dd")
   const [isOpen, setIsOpen] = useState(false)
   const [newPaymentAmount, setNewPaymentAmount] = useState("")
-  const [newPaymentDate, setNewPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"))
+  const [newPaymentDate, setNewPaymentDate] = useState(initialPaymentDate)
   const [newPaymentNote, setNewPaymentNote] = useState("")
   const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -43,7 +46,7 @@ export function PaymentButtonOnly({
 
   const resetForm = () => {
     setNewPaymentAmount("")
-    setNewPaymentDate(format(new Date(), "yyyy-MM-dd"))
+    setNewPaymentDate(initialPaymentDate)
     setNewPaymentNote("")
     setProofOfPaymentFile(null)
     if (fileInputRef.current) {
@@ -106,6 +109,7 @@ export function PaymentButtonOnly({
   return (
     <>
       <Button
+        type="button"
         size="sm"
         variant="outline"
         className={`min-w-48 transition-all duration-200 hover:border-gray-400 ${className}`}

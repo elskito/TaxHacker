@@ -17,6 +17,7 @@ import {
 import { prewarmFilePreview } from "@/lib/previews/generate"
 import { DEFAULT_PROMPT_ANALYSE_NEW_FILE } from "@/models/defaults"
 import { createFile, deleteFile, getFileById, updateFile } from "@/models/files"
+import { createPayment, PaymentData } from "@/models/payments"
 import { createTransaction, TransactionData, updateTransactionFiles } from "@/models/transactions"
 import { updateUser } from "@/models/users"
 import { Category, Field, File, Project, Transaction } from "@/prisma/client"
@@ -97,8 +98,38 @@ export async function saveFileAsTransactionAction(
     const file = await getFileById(fileId, user.id)
     if (!file) throw new Error("File not found")
 
+    // Payment set as paid in the analyze form. Validated before the transaction is created,
+    // otherwise a rejected payment leaves an orphan transaction and the file stays unsorted.
+    const newPaymentAmount = formData.get("newPaymentAmount") as string
+    const newPaymentDate = formData.get("newPaymentDate") as string
+    const newPaymentNote = formData.get("newPaymentNote") as string
+    let payment: PaymentData | null = null
+
+    if (newPaymentAmount && newPaymentDate) {
+      const amount = parseFloat(newPaymentAmount)
+      if (isNaN(amount) || amount <= 0) {
+        return { success: false, error: "Invalid payment amount" }
+      }
+
+      const paidAt = new Date(newPaymentDate)
+      if (isNaN(paidAt.getTime())) {
+        return { success: false, error: "Invalid payment date" }
+      }
+
+      const amountInCents = Math.round(amount * 100)
+      if (amountInCents > (validatedForm.data.total || 0)) {
+        return { success: false, error: "Payment amount exceeds remaining balance" }
+      }
+
+      payment = { amount: amountInCents, paidAt, note: newPaymentNote || undefined }
+    }
+
     // Create transaction
     const transaction = await createTransaction(user.id, validatedForm.data)
+
+    if (payment) {
+      await createPayment(transaction.id, user.id, payment)
+    }
 
     // Move file to processed location
     const userUploadsDirectory = getUserUploadsDirectory(user)
