@@ -11,13 +11,15 @@ import { FormSelectProject } from "@/components/forms/select-project"
 import { FormSelectType } from "@/components/forms/select-type"
 import { FormInput, FormCheckbox } from "@/components/forms/simple"
 import { FormSelectField } from "@/components/forms/select-field"
+import { PaymentButtonOnly } from "@/components/shared/payment-button-only"
 import UnsortedDates from "@/components/unsorted/dates"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { formatCurrency } from "@/lib/currency"
 import { Category, Currency, Field, File, Project } from "@/prisma/client"
 import { format, subDays } from "date-fns"
-import { Brain, Loader2, Save, Trash2 } from "lucide-react"
+import { Brain, CheckCircle, Loader2, Save, Trash2, X } from "lucide-react"
 import { startTransition, useActionState, useMemo, useState } from "react"
 
 export default function AnalyzeForm({
@@ -43,6 +45,9 @@ export default function AnalyzeForm({
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  // Payment can't be created before the transaction exists, so keep it here and submit it with the form.
+  // amount is in cents, like Payment.amount
+  const [pendingPayment, setPendingPayment] = useState<{ amount: number; paidAt: Date; note?: string } | null>(null)
 
   const fieldMap = useMemo(() => {
     return fields.reduce(
@@ -219,8 +224,50 @@ export default function AnalyzeForm({
 
       <div>{analyzeError && <FormError>{analyzeError}</FormError>}</div>
 
+      {formData.total > 0 && (
+        <div className="flex justify-end mb-4">
+          {pendingPayment ? (
+            <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span>
+                Paid {formatCurrency(pendingPayment.amount, formData.currencyCode)} on{" "}
+                {format(pendingPayment.paidAt, "MMM d, yyyy")}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 text-green-800 hover:bg-green-100"
+                onClick={() => setPendingPayment(null)}
+                title="Remove payment"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <PaymentButtonOnly
+              totalAmount={Math.round(formData.total * 100)}
+              currencyCode={formData.currencyCode}
+              totalPaid={0}
+              showProofOfPayment={false}
+              defaultDate={formData.issuedAt || undefined}
+              onAddPayment={(amount, paidAt, note) => setPendingPayment({ amount, paidAt, note })}
+              className="min-w-48"
+            />
+          )}
+        </div>
+      )}
+
       <form className="space-y-4" action={saveAsTransaction}>
         <input type="hidden" name="fileId" value={file.id} />
+        {pendingPayment && (
+          <>
+            {/* ponytail: total may be edited after the payment is set — the save action re-validates against the saved total */}
+            <input type="hidden" name="newPaymentAmount" value={(pendingPayment.amount / 100).toString()} />
+            <input type="hidden" name="newPaymentDate" value={format(pendingPayment.paidAt, "yyyy-MM-dd")} />
+            {pendingPayment.note && <input type="hidden" name="newPaymentNote" value={pendingPayment.note} />}
+          </>
+        )}
         {fieldMap.invoiceId && (
           <FormInput
             title={fieldMap.invoiceId.name}
