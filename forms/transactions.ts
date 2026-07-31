@@ -26,7 +26,8 @@ export const transactionFormSchema = z
         if (isNaN(num)) {
           throw new z.ZodError([{ message: "Invalid VAT amount", path: ["vat"], code: z.ZodIssueCode.custom }])
         }
-        return Math.round(num * 100) // convert to cents
+        // VAT is always stored as a magnitude; the sign lives on total + type (credit notes)
+        return Math.abs(Math.round(num * 100)) // convert to cents
       }),
     vatRate: z
       .string()
