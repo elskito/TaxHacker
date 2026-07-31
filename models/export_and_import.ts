@@ -51,7 +51,8 @@ export const EXPORT_AND_IMPORT_FIELD_MAP: Record<string, ExportImportFieldSettin
     },
     import: async function (userId: string, value: string) {
       const num = parseFloat(value)
-      return isNaN(num) ? null : Math.round(num * 100)
+      // VAT is always stored as a magnitude; the sign lives on total + type
+      return isNaN(num) ? null : Math.abs(Math.round(num * 100))
     },
   },
   vatRate: {

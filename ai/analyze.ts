@@ -35,6 +35,13 @@ export async function analyzeTransaction(
     const result = response.output
     const tokensUsed = response.tokensUsed || 0
 
+    // LLMs return a negative VAT for credit notes. VAT is always a magnitude here,
+    // the sign lives on total + type - same rule as forms/transactions.ts
+    const vat = parseFloat(String(result.vat))
+    if (vat < 0) {
+      result.vat = String(Math.abs(vat))
+    }
+
     console.log("LLM response:", result)
     console.log("LLM tokens used:", tokensUsed)
 
