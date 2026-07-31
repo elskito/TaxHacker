@@ -99,8 +99,10 @@ export const CurrencyConverterTool = ({
               className="w-32 rounded-md border border-input px-2 py-1"
             />
           </div>
-          {!error && (
-            <div className="text-xs text-muted-foreground">The exchange rate will be added to the transaction</div>
+          {!error && exchangeRate > 0 && (
+            <div className="text-xs text-muted-foreground">
+              1 {originalCurrencyCode} = {exchangeRate.toFixed(4)} {targetCurrencyCode}
+            </div>
           )}
           {error && (
             <div className="flex flex-row gap-2">
